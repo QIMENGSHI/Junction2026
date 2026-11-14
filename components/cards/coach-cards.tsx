@@ -10,7 +10,7 @@ import { ShowTransactions } from "./transactions";
 
 /** The slider picks among values the SQL already computed for every 5% step, so moving it does
  *  no arithmetic in the browser. Until it moves, the card shows the exact percentage asked for. */
-export function CutCard({ card }: { card: CutCardData }) {
+export function CutCard({ card, why, badge }: { card: CutCardData; why?: string; badge?: string }) {
   const { language, t } = useLanguage();
   const [step, setStep] = useState<number | null>(null);
   const at = step === null
@@ -27,6 +27,10 @@ export function CutCard({ card }: { card: CutCardData }) {
     <CardFrame
       title={`${displayName(card.title, language)} · ${t("planTitle")}`}
       meta={periodLabel(card.period_start, card.period_end, language)}>
+      {(badge || why) && <div className="mb-4">
+        {badge && <p className="mb-2 w-fit rounded-full bg-wash px-2 py-1 text-xs font-semibold text-accent">{badge}</p>}
+        {why && <p className="text-sm leading-snug text-ink-2">{why}</p>}
+      </div>}
       <p className="mb-3 flex items-baseline justify-between gap-3 text-sm">
         <span className="text-muted">{t("spendingPerMonth")}</span>
         <span className="money-col font-semibold">{eur(card.monthly_now, language)}</span>

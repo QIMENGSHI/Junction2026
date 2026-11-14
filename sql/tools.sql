@@ -1,4 +1,4 @@
--- Kori's six tools: fixed SQL, stored in kori.duckdb as table macros by build_db.py.
+-- Kori's seven tools: fixed SQL, stored in kori.duckdb as table macros by build_db.py.
 -- The app and kori/scripts/test_tools.py call them with bound values, for example
 --   select * from spend_by('CUST04414', group_by := 'label', only_label := 'Taxi', period := 'last_month');
 -- Every number the model or a card shows comes from here, with the tx_ids behind it.
@@ -511,3 +511,94 @@ order by case when sort = 'largest' then abs(t.tx_amount_eur) end desc nulls las
          case when sort = 'oldest' then t.tx_id end asc nulls last,
          t.tx_id desc
 limit case when ids is not null then 100000 else max_rows::integer end;
+
+
+-- 7. suggest_cuts: the customer's everyday spending ranked by how far it sits above normal,
+--    for the swipeable stack of Try-it cards. Each idea is one group of everyday spending:
+--    the whole category when the basket rules make every row of it everyday (Restaurants,
+--    Entertainment, Lifestyle, Travel), otherwise the label inside the everyday basket (Taxi,
+--    Parking, Home supplies ...), so a cut never touches fuel, commuting or a big appliance.
+--    Two kinds of normal; the larger gap wins and names the reason:
+--      peers  categories only: per month over all data, minus the age band's average among
+--             people who spend in that category (peer_category, the benchmark baseline)
+--      usual  2+ purchases this month: this month so far, minus the customer's usual month
+--             (the 12 months before this one), prorated for the share of the month elapsed
+--    you_eur and normal_eur are rounded to cents first and excess_eur = you_eur - normal_eur,
+--    so the card's figures add up. Ideas under 10 EUR are dropped; when fewer than max_rows
+--    remain, the largest everyday groups over all data fill the stack (reason largest).
+--    period is the base the Try-it card cuts from: all (peers, largest) or this_month (usual).
+create or replace macro suggest_cuts(customer, max_rows := 3, as_of := null) as table
+with tm as (select * from period_bounds('this_month', as_of, null, null)),
+al as (select * from period_bounds('all', as_of, null, null)),
+win as (
+    select tm.period_start as m_start, tm.period_end as m_end,
+           greatest((tm.period_start - interval 12 month)::date, al.period_start) as u_start,
+           (tm.period_start - 1)::date as u_end,
+           tm.period_days / day(last_day(tm.period_start)) as elapsed,
+           al.period_start as a_start, al.period_end as a_end, al.period_months as a_months
+    from tm, al
+),
+ev as (
+    select case when t.category in ('Transportation', 'Home & Tech') then 'label' else 'category' end as kind,
+           case when t.category in ('Transportation', 'Home & Tech') then t.label else t.category end as key,
+           t.tx_id, t.tx_date, -t.tx_amount_eur as eur
+    from transactions t, win
+    where t.customer_id = customer and t.basket = 'everyday' and t.tx_date between win.a_start and win.a_end
+),
+g as (
+    select ev.kind, ev.key,
+           coalesce(sum(ev.eur) filter (where ev.tx_date between win.m_start and win.m_end), 0) as month_eur,
+           count(*) filter (where ev.tx_date between win.m_start and win.m_end) as month_n,
+           coalesce(sum(ev.eur) filter (where ev.tx_date between win.u_start and win.u_end), 0) as usual_eur,
+           sum(ev.eur) as all_eur, count(*) as all_n,
+           coalesce(list(ev.tx_id order by ev.tx_id) filter (where ev.tx_date between win.m_start and win.m_end),
+                    []::integer[]) as month_ids,
+           list(ev.tx_id order by ev.tx_id) as all_ids
+    from ev, win
+    group by ev.kind, ev.key
+),
+s as (
+    select g.*,
+           round(g.all_eur / win.a_months, 2)::decimal(12,2) as long_eur,
+           g.month_eur::decimal(12,2) as this_eur,
+           pc.avg_per_month as peers_eur,
+           case when win.u_end >= win.u_start
+                then round(g.usual_eur / (datediff('month', win.u_start, win.u_end) + 1) * win.elapsed, 2)::decimal(12,2)
+           end as usual_norm
+    from g cross join win
+    left join peer_category pc
+           on g.kind = 'category' and pc.category = g.key
+          and pc.age_band = (select c.age_band from customers c where c.customer_id = customer)
+),
+opts as (
+    select s.kind, s.key, 'peers' as reason, 'all' as base, s.long_eur as you_eur, s.peers_eur as normal_eur,
+           s.all_n as n, s.all_ids as tx_ids
+    from s where s.kind = 'category' and s.peers_eur is not null
+    union all
+    select s.kind, s.key, 'usual', 'this_month', s.this_eur, s.usual_norm, s.month_n, s.month_ids
+    from s where s.month_n >= 2 and s.usual_norm is not null
+),
+best as (
+    select o.*, (o.you_eur - o.normal_eur)::decimal(12,2) as excess_eur,
+           row_number() over (partition by o.kind, o.key order by o.you_eur - o.normal_eur desc, o.reason) as pick
+    from opts o
+),
+ideas as (
+    select b.kind, b.key, b.reason, b.base, b.you_eur, b.normal_eur, b.excess_eur, b.n, b.tx_ids, 0 as tier
+    from best b where b.pick = 1 and b.excess_eur >= 10
+),
+fill as (
+    select s.kind, s.key, 'largest', 'all', s.long_eur, null::decimal(12,2), null::decimal(12,2),
+           s.all_n, s.all_ids, 1
+    from s
+    where s.long_eur > 0 and not exists (select 1 from ideas i where i.kind = s.kind and i.key = s.key)
+),
+ranked as (
+    select u.*, row_number() over (order by u.tier, u.excess_eur desc nulls last, u.you_eur desc, u.key) as rk
+    from (select * from ideas union all select * from fill) u
+)
+select r.rk::integer as rank, r.kind, r.key, r.reason, r.base as period,
+       r.you_eur, r.normal_eur, r.excess_eur, r.n::integer as n, r.tx_ids
+from ranked r
+where r.rk <= max_rows::integer
+order by r.rk;

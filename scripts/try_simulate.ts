@@ -28,6 +28,7 @@ async function main() {
         when category='Health' or (category='Home & Tech' and tx_amount_eur<=-400) then 'irregular' else 'everyday' end`);
     assert.equal(classification.n, 0);
     assert.equal(await weekly(), 467.4);
+    assert.equal((await listPurchases()).enabled, true);
     const before = await executeTool("spend_by", { group_by: "total", category: "Restaurants", period: "last_month" });
     assert(before.ok && before.card.kind === "number");
     const monthBefore = await executeTool("spend_by", { group_by: "basket", period: "this_month" });
@@ -144,6 +145,26 @@ async function main() {
     await resetPurchases();
     assert.equal(await weekly(), 467.4);
     assert.notEqual((await listPurchases()).version, fullVersion);
+
+    // The Try-it stack follows the customer's habits: a €200 taxi makes Taxi the top idea.
+    const stackBefore = await executeTool("suggest_cuts", {});
+    assert(stackBefore.ok && stackBefore.card.kind === "ideas");
+    assert.deepEqual(stackBefore.card.ideas.map((i) => i.key), ["Restaurants", "Entertainment", "Taxi"]);
+    assert.equal(stackBefore.card.ideas[0].cut.monthly_saving, 108.07);
+    const ride = await addPurchase({ preset: "taxi", amount_eur: 200 });
+    const stackAfter = await executeTool("suggest_cuts", {});
+    assert(stackAfter.ok && stackAfter.card.kind === "ideas");
+    assert.deepEqual(stackAfter.card.ideas.map((i) => i.key), ["Taxi", "Restaurants", "Entertainment"]);
+    const top = stackAfter.card.ideas[0];
+    assert.deepEqual([top.reason, top.period, top.you_eur, top.normal_eur, top.excess_eur], ["usual", "this_month", 407.65, 16.12, 391.53]);
+    assert.equal(top.cut.monthly_now, 407.65);
+    assert.equal(top.cut.simulated_purchases, 1);
+    assert(top.cut.tx_ids.includes(ride.purchases[0].tx_id));
+    await resetPurchases();
+    const stackReset = await executeTool("suggest_cuts", {});
+    assert(stackReset.ok && stackReset.card.kind === "ideas");
+    assert.deepEqual(stackReset.card.ideas.map((i) => i.key), ["Restaurants", "Entertainment", "Taxi"]);
+
     const route = await import("../app/api/purchases/route");
     const request = (origin: string, body: string) => new Request("https://kori.test/api/purchases", {
       method: "POST", headers: { origin, "content-type": "application/json" }, body,
@@ -159,7 +180,7 @@ async function main() {
       method: "DELETE", headers: { origin: "https://kori.test" },
     }))).status, 200);
     assert.equal(await weekly(), 467.4);
-    console.log("All purchase integration checks passed: baseline, dinner, basket reconciliation, what-if updates and reset, rounding, dentist, live tools, balances, validation, concurrency and cap.");
+    console.log("All purchase integration checks passed: baseline, dinner, basket reconciliation, what-if updates and reset, rounding, dentist, live tools, balances, validation, concurrency, cap and the Try-it stack.");
   } finally {
     (await instance()).closeSync();
     await rm(directory, { recursive: true, force: true });

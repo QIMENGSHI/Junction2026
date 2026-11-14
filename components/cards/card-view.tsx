@@ -4,6 +4,7 @@ import type { Card } from "@/lib/protocol";
 import { BenchmarkCard, CutCard, ProfileCard } from "./coach-cards";
 import { BarsCard, NumberCard, SafeCard } from "./money-cards";
 import { TransactionsCard } from "./transactions";
+import { TryItStack } from "./try-it-stack";
 import { useLanguage } from "../language-provider";
 
 /** Renders one tool result. The tool decides the card; the card shows only the tool's figures. */
@@ -14,6 +15,7 @@ export function CardView({ card }: { card: Card }) {
     case "safe_to_spend": return <SafeCard card={card} />;
     case "transactions": return <TransactionsCard card={card} />;
     case "cut": return <CutCard card={card} />;
+    case "ideas": return <TryItStack card={card} />;
     case "benchmark": return <BenchmarkCard card={card} />;
     case "profile": return <ProfileCard card={card} />;
   }
@@ -35,6 +37,7 @@ const WORKING: Record<string, string> = {
   spend_by: "Adding up your transactions…",
   safe_to_spend: "Working out what is safe to spend…",
   simulate_cut: "Running the what-if…",
+  suggest_cuts: "Finding ideas to try…",
   benchmark: "Comparing with people your age…",
   spender_profile: "Reading your spending habits…",
   list_transactions: "Finding the transactions…",
@@ -44,6 +47,7 @@ const WORKING_FI: Record<string, string> = {
   spend_by: "Lasketaan tapahtumia yhteen…",
   safe_to_spend: "Lasketaan turvallista käyttövaraa…",
   simulate_cut: "Kokeillaan muutosta…",
+  suggest_cuts: "Etsitään kokeiltavia ideoita…",
   benchmark: "Verrataan ikäisiisi…",
   spender_profile: "Tulkitaan kulutustapojasi…",
   list_transactions: "Haetaan tapahtumia…",

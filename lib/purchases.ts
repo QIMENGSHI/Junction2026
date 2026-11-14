@@ -23,7 +23,8 @@ export async function listPurchases(): Promise<PurchaseState> {
       coalesce(sum(tx_amount_eur), 0)::varchar as total
     from transactions where customer_id=$customer and merchant_id='SIMULATED'`, { customer: CUSTOMER });
   // Monotonic revision also detects reset + a new insert between two polls (ids can be reused).
-  return { enabled: mode === "motherduck", purchases: state.purchases,
+  // Both cloud mode and an explicitly writable, isolated test copy support the full UI.
+  return { enabled: true, purchases: state.purchases,
     version: `${mode}:${state.revision}:${state.purchases.length}:${state.purchases[0]?.tx_id ?? 0}:${state.total}` };
 }
 

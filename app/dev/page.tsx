@@ -12,6 +12,7 @@ const DEMO: Array<{ question: string; tool: string; input: Record<string, unknow
   { question: "… and inside the everyday basket?", tool: "spend_by", input: { group_by: "category", basket: "everyday", period: "all" } },
   { question: "Restaurants, month by month", tool: "spend_by", input: { group_by: "month", category: "Restaurants", period: "all" } },
   { question: "What if I cut dining out by 20%?", tool: "simulate_cut", input: { category: "Restaurants", pct: 20 } },
+  { question: "What else could I cut?", tool: "suggest_cuts", input: {} },
   { question: "Is that normal for my age?", tool: "benchmark", input: { category: "Restaurants" } },
   { question: "What kind of spender am I?", tool: "spender_profile", input: {} },
   { question: "Show me last month's taxi rides", tool: "list_transactions", input: { label: "Taxi", period: "last_month" } },

@@ -1,4 +1,4 @@
-// The no-key demo agent: all six prepared questions must still call the verified SQL tools.
+// The no-key demo agent: the six prepared questions and the Try-it ideas must call the verified SQL tools.
 //   npm run try:demo
 import { runDemoTurn } from "../lib/demo-agent";
 import type { ChatEvent } from "../lib/protocol";
@@ -9,9 +9,10 @@ function check(name: string, ok: boolean, got?: unknown) {
   console.log(`   ${ok ? "ok  " : "FAIL"}  ${name}${ok ? "" : `  (got ${JSON.stringify(got)?.slice(0, 300)})`}`);
 }
 
-async function ask(message: string) {
+type History = Parameters<typeof runDemoTurn>[0]["history"];
+async function ask(message: string, history: History = []) {
   const events: ChatEvent[] = [];
-  await runDemoTurn({ history: [], message, send: (event) => events.push(event) });
+  await runDemoTurn({ history, message, send: (event) => events.push(event) });
   return events;
 }
 
@@ -44,6 +45,45 @@ async function main() {
     const events = await ask(question);
     check(`Finnish: ${question} -> ${kind}`, events.some((event) => event.type === "card" && event.card.kind === kind));
   }
+  for (const [question, kind] of [
+    ["What else could I cut?", "ideas"],
+    ["Mitä muuta voisin vähentää?", "ideas"],
+    ["What if I cut taxis by 30%?", "cut"],
+  ] as const) {
+    const events = await ask(question);
+    check(`${question} -> ${kind} card`, events.some((event) => event.type === "card" && event.card.kind === kind));
+  }
+  const taxiCut = (await ask("What if I cut taxis by 30%?")).find((event) => event.type === "card");
+  check("taxi cut targets everyday Taxi at 30%", taxiCut?.type === "card" && taxiCut.card.kind === "cut"
+    && taxiCut.card.title === "Taxi" && taxiCut.card.cut_pct === 30, taxiCut);
+  const datedCut = (await ask("What if I cut taxis last month by 30%?")).find((event) => event.type === "card");
+  check("a dated taxi cut stays a what-if, with that month's spending", datedCut?.type === "card" && datedCut.card.kind === "cut"
+    && datedCut.card.monthly_now === 207.65 && datedCut.card.cut_pct === 30);
+
+  let history: History = [];
+  const shown = new Set<string>();
+  let exhausted = false;
+  for (let round = 0; round < 20; round++) {
+    const events = await ask(round === 0 ? "What else could I cut?" : "More ideas", history);
+    const card = events.find((event) => event.type === "card");
+    if (card?.type !== "card" || card.card.kind !== "ideas") { check("follow-up returns an ideas card", false); break; }
+    const names = card.card.ideas.map((idea) => idea.key);
+    check(`follow-up ${round + 1} avoids previously shown ideas`, names.every((name) => !shown.has(name)), names);
+    names.forEach((name) => shown.add(name));
+    const done = events.find((event) => event.type === "done");
+    if (done?.type !== "done") { check("follow-up has signed-history content", false); break; }
+    history = done.history as History;
+    if (names.length === 0) {
+      exhausted = true;
+      check("empty ideas get a useful message", events.some((e) => e.type === "text" && e.text.includes("No more ideas")));
+      break;
+    }
+  }
+  check("idea follow-ups finish after the available groups", exhausted && shown.size > 3, shown.size);
+  check("fallback history carries compact tool results without transaction rows or ids",
+    history.some((m) => Array.isArray(m.content) && m.content.some((b) => b.type === "tool_result"))
+      && !/tx_ids|amount_eur|balance_after_eur|merchant_id/.test(JSON.stringify(history)));
+
   const finnish = await ask("Paljonko voin käyttää tällä viikolla?");
   check("Finnish question gets a Finnish explanation", finnish.some((event) => event.type === "text" && event.text.includes("palkkapäivään")));
 

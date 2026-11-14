@@ -37,7 +37,7 @@ npm run check
 npm run build
 ```
 
-`npm run check` covers the SQL-backed tool layer, the scripted Claude tool loop, privacy boundaries, and every no-key demo question. `/dev` is a card gallery backed by the real tools.
+`npm run check` covers the SQL-backed tool layer, the scripted Claude tool loop, privacy boundaries, demo follow-ups, and purchase-driven Try-it ranking/reset. `/dev` is a card gallery backed by the real tools.
 
 To rebuild the database from the original files in `../Data/`:
 
@@ -59,7 +59,7 @@ The Python build runs the database integrity and SQL-tool suites. Never modify t
 
 Main routes:
 
-- `/` — Home: safe-to-spend, three baskets, and the what-if slider.
+- `/` — Home: safe-to-spend, three baskets, and the Try-it stack: three swipeable what-if cards for the everyday spending furthest above normal (`suggest_cuts`).
 - `/chat` — Coach: streaming tool-driven chat.
 - `/dev` — internal gallery for checking every card without a model.
 
@@ -116,13 +116,18 @@ npm run purchase -- reset
 ```
 
 Home has the same preset/amount controls, polls every five seconds while visible,
-and refreshes on returning to the tab. All six tools read the customer's own spending
+and refreshes on returning to the tab. All seven tools read the customer's own spending
 live. The peer cohort averages remain the original verified baseline. Previously
 rendered chat answers are historical; ask a new question for current figures.
 
-Home's baskets and restaurant what-if card use the current demo month, including
-each matching new purchase in full. Their transaction lists cover that same month.
-The what-if card shows the spending basis and matching simulated-purchase count.
+Home's baskets use the current demo month, including each new purchase in full; their
+transaction lists cover that same month. The Try-it stack re-ranks after each purchase:
+ideas above the age-band average cut from the 24-month average, jumps above the usual
+month cut from this month. Each card shows its basis, why it was picked and the
+matching simulated-purchase count. After editing `sql/tools.sql`, reinstall the hosted
+macros with `python scripts/push_motherduck.py --tools-only` (keeps data and purchases).
+Tool installation is transactional: validation failure rolls back the definitions.
+Each stack is read in one SQL statement so its ranking and sliders use the same data snapshot.
 Historical chat charts explicitly label monthly averages, show the full period total when expanded,
 and expose any cent difference from rounding. Bar lengths match the printed shares.
 

@@ -124,7 +124,25 @@ export type ProfileRow = {
 
 export type ProfileCard = { kind: "profile"; rows: ProfileRow[] };
 
-export type Card = NumberCard | BarsCard | SafeCard | TransactionsCard | CutCard | BenchmarkCard | ProfileCard;
+/** One idea in the Try-it stack: a group of everyday spending above normal, and its what-if card.
+ *  peers: per month over all data vs the age band's average; usual: this month vs the customer's
+ *  own usual month; largest: no group is above normal, so the biggest everyday spending. */
+export type CutIdea = {
+  rank: number;
+  kind: "category" | "label";
+  key: string;
+  reason: "peers" | "usual" | "largest";
+  period: "all" | "this_month";
+  you_eur: number;
+  normal_eur: number | null;
+  excess_eur: number | null;
+  n: number;
+  cut: CutCard;
+};
+
+export type IdeasCard = { kind: "ideas"; ideas: CutIdea[] };
+
+export type Card = NumberCard | BarsCard | SafeCard | TransactionsCard | CutCard | IdeasCard | BenchmarkCard | ProfileCard;
 
 /** One line of the /api/chat response stream (newline-delimited JSON). */
 export type ChatProgressEvent =

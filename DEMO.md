@@ -39,10 +39,14 @@ Ask: **“What if I cut dining out by 20%?”**
 
 Move the slider. At 20%, the verified result is **€108.07 a month** and **€1,296.82 a year**. Every slider step is precomputed by SQL; the browser only displays it.
 
-Home's what-if card instead uses September spending, matching its basket totals.
-Restaurant demo purchases appear in that month's spending basis and transaction
-list, with a simulated-purchase count. Chat's default what-if uses the historical
-monthly average; both cards show their dates.
+On Home, the **Try it** stack holds three what-if cards ranked by how far the
+spending sits above normal: **Restaurants** (€343.93 a month above people your age),
+**Entertainment** (€299.71 above) and **Taxi** (€207.65 this month against a usual
+€16.12). Swipe, or tap a name, to bring another card to the front. In Coach,
+**“What else could I cut?”** shows the same stack.
+
+Live variant: **Simulate a purchase → Taxi → 200 → Add purchase**. The stack re-ranks
+and Taxi jumps to the front: €407.65 this month, €391.53 above normal. Reset afterwards.
 
 **2:35–2:50 — Personal context**
 
@@ -61,7 +65,7 @@ Ask: **“Is that normal for my age?”** The benchmark card shows restaurants a
 5. Is that normal for my age?
 6. What kind of spender am I?
 
-The Finnish toggle exposes equivalent Finnish prompts. With no Anthropic key, these questions use the credit-free router and the same production SQL tools.
+The Finnish toggle exposes equivalent Finnish prompts. With no Anthropic key, these questions use the credit-free router and the same production SQL tools. The router also answers a typed **“What else could I cut?”** (*“Mitä muuta voisin vähentää?”*) with the Try-it stack, and **“What if I cut taxis by 30%?”** with a taxi what-if card.
 
 ## Backup recording checklist
 

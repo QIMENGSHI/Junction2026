@@ -15,7 +15,7 @@ async function main() {
   console.log("Tool definitions sent to the model");
   const tools = await apiTools();
   const names = tools.map((t) => t.name);
-  check("six tools, in a fixed order", names.join() === "spend_by,safe_to_spend,simulate_cut,benchmark,spender_profile,list_transactions", names);
+  check("seven tools, in a fixed order", names.join() === "spend_by,safe_to_spend,simulate_cut,suggest_cuts,benchmark,spender_profile,list_transactions", names);
   check("every tool streams its input eagerly", tools.every((t) => t.eager_input_streaming === true));
   const spendSchema = JSON.stringify(tools[0].input_schema);
   check("spend_by offers real labels (Taxi) and categories (Restaurants)", spendSchema.includes('"Taxi"') && spendSchema.includes('"Restaurants"'));
@@ -44,7 +44,7 @@ async function main() {
     check("the model sees no ids", !leaks(q3a.model) && !leaks(q3b.model));
   } else check("spend_by grouped answered", false, [q3a, q3b]);
 
-  console.log("\nThe other four tools");
+  console.log("\nThe other five tools");
   const safe = await executeTool("safe_to_spend", {});
   check("safe_to_spend: €467.40 this week (€2,000 kept aside)",
     safe.ok && safe.card.kind === "safe_to_spend" && safe.card.lines.find((l) => l.key === "weekly")?.eur === 467.4, safe);
@@ -59,7 +59,23 @@ async function main() {
   const list = await executeTool("list_transactions", { period: "last_month", label: "Taxi" });
   check("list_transactions: 3 rows on screen, the model gets only a count",
     list.ok && list.card.kind === "transactions" && list.card.rows.length === 3 && !leaks(list.model), list.ok && list.model);
-  check("no tool leaks ids or rows to the model", [safe, cut, bench, profile].every((r) => r.ok && !leaks(r.model)));
+  const ideas = await executeTool("suggest_cuts", {});
+  if (ideas.ok && ideas.card.kind === "ideas") {
+    const stack = ideas.card.ideas;
+    console.log("   Try-it stack:", stack.map((i) => `${i.key} ${i.reason} +${i.excess_eur}`).join(", "));
+    check("suggest_cuts: Restaurants (+€343.93 vs peers), Entertainment (+€299.71), Taxi (+€191.53 vs usual)",
+      stack.map((i) => `${i.key}:${i.reason}:${i.excess_eur}`).join() === "Restaurants:peers:343.93,Entertainment:peers:299.71,Taxi:usual:191.53",
+      stack.map((i) => `${i.key}:${i.reason}:${i.excess_eur}`));
+    check("each idea carries its own what-if card; idea 1 at 20% saves €108.07 a month",
+      stack.every((i) => i.cut.kind === "cut" && i.cut.pct_steps.length === 21 && i.cut.cut_pct === 20)
+        && stack[0].cut.monthly_saving === 108.07 && stack[2].cut.title === "Taxi" && stack[2].cut.monthly_now === 207.65,
+      stack.map((i) => [i.cut.title, i.cut.monthly_now, i.cut.monthly_saving]));
+    const other = await executeTool("suggest_cuts", { exclude: ["Restaurants"] });
+    check("exclude gives other ideas: Entertainment, Taxi, Parking",
+      other.ok && other.card.kind === "ideas" && other.card.ideas.map((i) => i.key).join() === "Entertainment,Taxi,Parking",
+      other.ok && other.card.kind === "ideas" && other.card.ideas.map((i) => i.key));
+  } else check("suggest_cuts answered", false, ideas);
+  check("no tool leaks ids or rows to the model", [safe, cut, ideas, bench, profile].every((r) => r.ok && !leaks(r.model)));
 
   console.log("\nBad input");
   const bad = await executeTool("spend_by", { group_by: "vibes", period: "all" });

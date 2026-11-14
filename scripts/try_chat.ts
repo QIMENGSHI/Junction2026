@@ -60,10 +60,10 @@ async function main() {
   check("history: user, assistant (thinking + tool call), tool result, assistant text", t1.history.length === 4 && JSON.stringify(t1.history[1]).includes("sig-abc"));
 
   const params = q2.seen[0];
-  check("request: claude-opus-5-5, effort low, fallbacks default, prompt caching, 6 tools",
+  check("request: claude-opus-5-5, effort low, fallbacks default, prompt caching, 7 tools",
     params.model === "claude-opus-5-5" && params.output_config?.effort === "low" && params.fallbacks === "default"
     && params.cache_control?.type === "ephemeral" && params.betas?.includes("server-side-fallback-2026-07-01") === true
-    && params.tools?.length === 6, params);
+    && params.tools?.length === 7, params);
   check("request: no sampling parameters or thinking switch (Opus 5.5 rejects them)",
     !("temperature" in params) && !("top_p" in params) && !("thinking" in params));
 

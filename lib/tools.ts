@@ -8,7 +8,7 @@ import { CUSTOMER } from "./config";
 import { query, type SqlParam } from "./db";
 import { capitalize } from "./format";
 import type {
-  BarsCard, BenchmarkCard, BenchmarkRow, Card, CutCard, Flow, NumberCard, Period, ProfileCard, ProfileRow,
+  BarsCard, BenchmarkCard, BenchmarkRow, Card, CutCard, CutIdea, Flow, IdeasCard, NumberCard, Period, ProfileCard, ProfileRow,
   SafeCard, SafeLine, SpendRow, TransactionsCard, TxRow,
 } from "./protocol";
 
@@ -151,6 +151,58 @@ async function simulateCut(input: {
   return { model, card };
 }
 
+/** How many ideas the Try-it stack holds. */
+const IDEAS = 3;
+
+const REASONS: Record<CutIdea["reason"], string> = {
+  peers: "per month over all data, above the average of people in the same age band who spend on it",
+  usual: "this month so far, above the customer's own usual month (the 12 months before this one)",
+  largest: "one of the largest everyday spending groups; no above-normal comparison is used",
+};
+
+async function suggestCuts(input: { exclude?: string[] }): Promise<ToolResult> {
+  const exclude = new Set(input.exclude ?? []);
+  // One statement gives the ranking, explanations and slider values the same database
+  // snapshot, even if a purchase is committed while Home is refreshing.
+  const rows = await query<Omit<CutIdea, "cut"> & Omit<CutCard, "kind" | "title">>(`
+    with picked as (
+      select * from suggest_cuts($customer, max_rows := $max_rows)
+      where not list_contains($excluded::json::varchar[], key)
+      order by rank limit 3
+    )
+    select i.* exclude (tx_ids), c.*,
+      (select count(*)::integer from transactions t
+       where t.customer_id = $customer and t.merchant_id = 'SIMULATED'
+         and list_contains(c.tx_ids, t.tx_id)) as simulated_purchases
+    from picked i, lateral simulate_cut($customer,
+      only_category := case when i.kind = 'category' then i.key end,
+      only_label := case when i.kind = 'label' then i.key end,
+      only_basket := 'everyday', pct := 20, period := i.period) c
+    order by i.rank`, {
+    customer: CUSTOMER, max_rows: IDEAS + exclude.size, excluded: JSON.stringify([...exclude]),
+  });
+  const ideas: CutIdea[] = rows.map(({ rank, kind, key, reason, period, you_eur, normal_eur, excess_eur, n, ...cut }) => ({
+    rank, kind, key, reason, period, you_eur, normal_eur, excess_eur, n,
+    cut: { kind: "cut", title: key, ...cut },
+  }));
+  const card: IdeasCard = { kind: "ideas", ideas };
+  const model = {
+    shown_as: "swipeable stack of Try-it cards, one per idea, each a 0-100% what-if slider starting at 20%",
+    ideas: ideas.map((idea) => ({
+      rank: idea.rank,
+      cutting: idea.key,
+      why: REASONS[idea.reason],
+      you_eur: idea.you_eur,
+      normal_eur: idea.normal_eur,
+      above_normal_eur: idea.excess_eur,
+      monthly_saving_at_20pct: idea.cut.monthly_saving,
+      yearly_saving_at_20pct: idea.cut.yearly_saving,
+      averaged_over: { start: idea.cut.period_start, end: idea.cut.period_end },
+    })),
+  };
+  return { model, card };
+}
+
 async function benchmark(input: { category?: string }): Promise<ToolResult> {
   const rows = await callTool<BenchmarkRow>("benchmark", { only_category: input.category });
   const card: BenchmarkCard = { kind: "benchmark", rows };
@@ -212,6 +264,7 @@ function buildSpecs(vocab: Vocab): ToolSpec[] {
   const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("YYYY-MM-DD; only with period custom");
   const category = z.enum(vocab.categories).describe("Broad category, e.g. Restaurants, Transportation, Groceries");
   const label = z.enum(vocab.labels).describe("Plain merchant type from the card terminal, e.g. Taxi, Restaurant, Fast food, Supermarket, Electronics");
+  const subject = z.enum([...new Set([...vocab.categories, ...vocab.labels])] as [string, ...string[]]);
   const basket = z.enum(BASKETS).describe("S-Bank basket: regular (mandatory monthly), irregular (mandatory now and then), everyday (everything else)");
   const flow = z.enum(FLOWS).describe("spending (default), income (money in) or saving (money moved to savings and investments)");
 
@@ -261,6 +314,19 @@ function buildSpecs(vocab: Vocab): ToolSpec[] {
         period: period.optional().describe("Base for the monthly average; leave out for all 24 months"),
       }),
       run: simulateCut,
+    }),
+    tool({
+      name: "suggest_cuts",
+      description:
+        "Rank the customer's everyday spending by how far it sits above normal - above people their age for a " +
+        "long-run habit, or above their own usual month for a jump this month - and show the top three as a " +
+        "swipeable stack of Try-it cards, each a what-if slider starting at 20%. Use it when the customer asks what " +
+        "to cut, how to save, or for another idea or Try-it card. Pass exclude with ideas already shown.",
+      schema: z.object({
+        exclude: z.array(subject).max(50).optional()
+          .describe("Categories or merchant types already suggested, to get different ideas"),
+      }),
+      run: suggestCuts,
     }),
     tool({
       name: "benchmark",

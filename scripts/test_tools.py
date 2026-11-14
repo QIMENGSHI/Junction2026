@@ -1,4 +1,4 @@
-"""Block 2 tests: the six tools in kori/sql/tools.sql answer the demo with the right numbers.
+"""Block 2 tests: the seven tools in kori/sql/tools.sql answer the demo with the right numbers.
 
     python kori/scripts/test_tools.py      # exits 1 if any check fails; build_db.py runs it too
 
@@ -133,6 +133,21 @@ def demo(con, check):
           [(r["key"], r["eur"]) for r in two if not r["is_total"]] == [("Electronics", Decimal("1134.47"))]
           and key["irregular_avg"]["eur"] == Decimal("300.05"), two)
 
+    print("\n8  The Try-it stack (Home): everyday spending furthest above normal")
+    ideas = q(con, "select * from suggest_cuts($c)", c=DEMO)
+    for r in ideas:
+        normal = eur(r["normal_eur"]) if r["normal_eur"] is not None else "-"
+        print(f"   {r['rank']}. {r['key']:<14}{r['reason']:<7}{eur(r['you_eur']):>10} vs {normal:>9}  above by {eur(r['excess_eur'])}")
+    check("Restaurants +343.93 vs peers, Entertainment +299.71 vs peers, Taxi +191.53 vs your usual",
+          [(r["key"], r["reason"], r["period"], r["you_eur"], r["normal_eur"], r["excess_eur"]) for r in ideas]
+          == [("Restaurants", "peers", "all", Decimal("540.34"), Decimal("196.41"), Decimal("343.93")),
+              ("Entertainment", "peers", "all", Decimal("434.21"), Decimal("134.50"), Decimal("299.71")),
+              ("Taxi", "usual", "this_month", Decimal("207.65"), Decimal("16.12"), Decimal("191.53"))],
+          [(r["key"], r["excess_eur"]) for r in ideas])
+    first = q(con, """select monthly_saving from simulate_cut($c, only_category := 'Restaurants', only_basket := 'everyday',
+                      period := 'all')""", c=DEMO)[0]["monthly_saving"]
+    check("idea 1's card, cut by 20%, saves €108.07 a month", same(first, "108.07"), first)
+
 
 # ---------------------------------------------------------------- part 2: by hand
 
@@ -208,6 +223,16 @@ def by_hand(con, check):
           and same(tool[("weekly", "Safe")]["eur"], h["weekly"], "0.01"),
           (tool[("weekly", "Safe")]["eur"], h["weekly"]))
 
+    taxi = q(con, """select tx_date, -tx_amount_eur as eur from transactions
+                     where customer_id = $c and label = 'Taxi' and basket = 'everyday'""", c=DEMO)
+    this_month = sum(r["eur"] for r in taxi if dt.date(2026, 9, 1) <= r["tx_date"] <= dt.date(2026, 9, 30))
+    usual = cents(sum(r["eur"] for r in taxi if dt.date(2025, 9, 1) <= r["tx_date"] <= dt.date(2026, 8, 31)) / 12)
+    idea = next(r for r in q(con, "select * from suggest_cuts($c)", c=DEMO) if r["key"] == "Taxi")
+    print(f"   Taxi this month {eur(this_month)}; usual month (Sep 2025-Aug 2026) {eur(usual)}")
+    check("the Taxi idea agrees with raw rows: this month, usual month, and the gap",
+          (idea["you_eur"], idea["normal_eur"], idea["excess_eur"]) == (this_month, usual, this_month - usual),
+          (idea["you_eur"], idea["normal_eur"], idea["excess_eur"]))
+
 
 # ---------------------------------------------------------------- part 3: guards
 
@@ -234,6 +259,10 @@ def guards(con, check):
     check("only_flow := 'income' sums money in (salary and other income)", income["eur"] > 0 and income["n"] >= 24, income)
     base = q(con, "select monthly_now from simulate_cut($c, only_basket := 'everyday')", c=DEMO)[0]["monthly_now"]
     check("simulate_cut filters too (everyday basket base = 1,347.60)", same(base, "1347.60"), base)
+    mixed = [r["category"] for r in q(con, """select category from transactions where flow = 'spending'
+                                              group by category having count(distinct basket) > 1 order by 1""")]
+    check("only Transportation and Home & Tech mix baskets (suggest_cuts splits those two by label)",
+          mixed == ["Home & Tech", "Transportation"], mixed)
     check("benchmark only_category returns that one category",
           [r["category"] for r in q(con, "select category from benchmark($c, only_category := 'Travel')", c=DEMO)] == ["Travel"])
 
@@ -255,7 +284,7 @@ def guards(con, check):
     # Node turns BIGINT into a JS bigint, which JSON.stringify rejects, so no tool may return one.
     wide = [f"{call.split('(')[0]}.{r['column_name']} {r['column_type']}"
             for call in ("safe_to_spend('{c}')", "spend_by('{c}')", "simulate_cut('{c}', only_category := 'Restaurants')",
-                         "benchmark('{c}')", "spender_profile('{c}')", "list_transactions('{c}')")
+                         "suggest_cuts('{c}')", "benchmark('{c}')", "spender_profile('{c}')", "list_transactions('{c}')")
             for r in q(con, f"describe select * from {call.format(c=DEMO)}")
             if "BIGINT" in r["column_type"] or "HUGEINT" in r["column_type"]]
     check("no tool returns a BIGINT column (it would break JSON in the Node app)", not wide, wide)
@@ -294,11 +323,17 @@ def guards(con, check):
                 q(con, "select * from benchmark($c)", c=c)
                 q(con, "select * from spender_profile($c, as_of := $d)", c=c, d=d)
                 q(con, "select * from list_transactions($c, period := 'last_month', as_of := $d)", c=c, d=d)
-                calls += 6
+                ideas = q(con, "select * from suggest_cuts($c, as_of := $d)", c=c, d=d)
+                gaps = [r["excess_eur"] for r in ideas if r["excess_eur"] is not None]
+                if len(ideas) > 3 or [r["rank"] for r in ideas] != list(range(1, len(ideas) + 1)) \
+                        or gaps != sorted(gaps, reverse=True) or any(g < 10 for g in gaps) \
+                        or any(r["you_eur"] - r["normal_eur"] != r["excess_eur"] for r in ideas if r["excess_eur"] is not None):
+                    problems.append((c, d, "suggest_cuts ranks or figures do not add up"))
+                calls += 7
             except duckdb.Error as e:
                 problems.append((c, d, str(e).splitlines()[0]))
     ms = (time.perf_counter() - t0) / max(calls, 1) * 1000
-    check(f"all six tools run for {len(sample)} customers x {len(dates)} dates; safe-to-spend adds up "
+    check(f"all seven tools run for {len(sample)} customers x {len(dates)} dates; safe-to-spend adds up "
           f"({ms:.0f} ms per call)", not problems, problems[:3])
 
 

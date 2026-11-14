@@ -4,15 +4,15 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PurchaseState } from "@/lib/purchase-presets";
-import type { BarsCard as BarsCardData, CutCard as CutCardData, SafeCard as SafeCardData } from "@/lib/protocol";
+import type { BarsCard as BarsCardData, IdeasCard, SafeCard as SafeCardData } from "@/lib/protocol";
 import { AppHeader } from "./app-header";
 import { AppNav } from "./app-nav";
-import { CutCard } from "./cards/coach-cards";
 import { BarsCard, SafeCard } from "./cards/money-cards";
+import { TryItStack } from "./cards/try-it-stack";
 import { useLanguage } from "./language-provider";
 import { SimulateSheet } from "./simulate-sheet";
 
-export function Home({ safe, baskets, cut, simulation }: { safe: SafeCardData; baskets: BarsCardData; cut: CutCardData; simulation: PurchaseState }) {
+export function Home({ safe, baskets, ideas, simulation }: { safe: SafeCardData; baskets: BarsCardData; ideas: IdeasCard; simulation: PurchaseState }) {
   const { t } = useLanguage();
   const router = useRouter();
   const [sheet, setSheet] = useState(false);
@@ -81,7 +81,8 @@ export function Home({ safe, baskets, cut, simulation }: { safe: SafeCardData; b
           </div>}
 
           <BarsCard card={baskets} />
-          <CutCard card={cut} />
+          {/* A new ranking (e.g. after a simulated purchase) starts again from its first idea. */}
+          <TryItStack key={ideas.ideas.map((idea) => idea.key).join("|")} card={ideas} />
 
           <Link href="/chat" className="mb-2 flex min-h-14 items-center justify-between rounded-2xl bg-accent px-5 py-3 font-semibold text-on-accent">
             <span>{t("askKori")}</span>
