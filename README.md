@@ -70,3 +70,77 @@ Deploy the `kori/` directory as the Vercel project root. The database and native
 Set `ANTHROPIC_API_KEY` in the deployment only if open-ended chat is required. Without it, the six-question demo remains fully functional. Keep the project on the Node.js runtime—DuckDB cannot run in an Edge function.
 
 See [DEMO.md](DEMO.md) for the three-minute pitch and recording runbook.
+
+## Live data with MotherDuck
+
+The original DuckDB file remains the offline seed. Set `MOTHERDUCK_TOKEN` and
+`KORI_MD_DATABASE=kori` in `.env.local` to use a shared, writable MotherDuck database.
+Keep the token server-only. Choose a MotherDuck organization in AWS `eu-central-1`;
+Vercel functions are configured for `fra1`. Confirm the challenge's data terms permit
+uploading the dataset before running the upload script.
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python scripts/push_motherduck.py
+npm run spike:motherduck
+```
+
+The upload refuses to overwrite an existing database. `--replace` explicitly replaces
+the whole hosted database, including simulated purchases. All current SQL macros are
+installed after copying and the 17 integrity checks run against the hosted copy.
+No upload happens during build or deployment.
+
+Add the same `MOTHERDUCK_TOKEN` and `KORI_MD_DATABASE` to Vercel's Preview and Production
+environment variables and redeploy once to activate the connection. Validate a Preview
+deployment before promoting it: the Home simulation button must appear, a €150 dinner
+must change €467.40 to €397.40, and a second browser must follow within five seconds
+while visible. The local spike logs connection/query times and refuses to pass if
+fallback is active; it does not substitute for verifying the actual Vercel runtime.
+
+After activation, data changes need no redeploy:
+
+```bash
+npm run purchase -- dinner          # €150, or use dinner 250.50 for a custom amount
+npm run purchase -- taxi 45
+npm run purchase -- groceries 80
+npm run purchase -- dentist 480
+npm run purchase -- list
+npm run purchase -- reset
+```
+
+Home has the same preset/amount controls, polls every five seconds while visible,
+and refreshes on returning to the tab. All six tools read the customer's own spending
+live. The peer cohort averages remain the original verified baseline. Previously
+rendered chat answers are historical; ask a new question for current figures.
+
+Simulation rows have `merchant_id='SIMULATED'`. Reset deletes only those rows for
+the server-selected customer and restores the original balance chain. Amounts are
+€1–€5,000, at most 20 rows. Transactions update a revision row before inserting,
+so competing application instances conflict and retry rather than reuse a balance.
+The simulator is a shared hackathon demo: anyone who can access the app can change
+or reset this demo customer's simulated purchases. It is not a production banking
+write interface.
+
+If MotherDuck initialization fails, Kori falls back to the bundled read-only data
+for that server process and hides the simulator. A failure after connection succeeds
+is surfaced rather than silently redirecting a write. Home no longer uses a static
+build-time snapshot. The SQL remains fixed and raw rows never go to Claude.
+
+For manual inspection, use MotherDuck's SQL editor:
+
+```sql
+USE kori;
+SELECT * FROM safe_to_spend('CUST04414');
+SELECT * FROM transactions
+WHERE customer_id='CUST04414' AND merchant_id='SIMULATED'
+ORDER BY tx_id DESC;
+```
+
+Use the purchase command for inserts; it maintains the balance, labels, basket, row
+cap and revision together. Editing an old transaction directly does not repair later
+stored balances. Do not open a second local writer while a server owns a local file.
+
+`npm run try:simulate` copies the seed to a temporary writable file and tests purchases,
+reset, validation, balances, all affected tools, concurrent requests and the cap.
+It never writes to the seed or MotherDuck.

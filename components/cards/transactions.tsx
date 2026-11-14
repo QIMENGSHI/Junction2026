@@ -13,13 +13,13 @@ export function signedEur(amount: number, language: DisplayLanguage = "en") {
 }
 
 export function TxRows({ rows }: { rows: TxRow[] }) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   return (
     <ul className="divide-y divide-line">
       {rows.map((row) => (
         <li key={row.tx_id} className="flex items-start justify-between gap-3 py-2">
           <div className="min-w-0">
-            <p className="truncate text-sm">{displayName(row.label, language)}</p>
+            <p className="text-sm">{displayName(row.label, language)} {row.merchant_id === "SIMULATED" && <span className="ml-1 rounded-full bg-wash px-2 py-0.5 text-[10px] font-semibold text-accent">{t("simulated")}</span>}</p>
             <p className="text-xs text-muted">{dayLabel(row.date, true, language)} · {row.time} · {displayName(row.category, language)}</p>
           </div>
           <p className={`money-col shrink-0 text-sm ${row.amount_eur > 0 ? "text-good" : ""}`}>{signedEur(row.amount_eur, language)}</p>

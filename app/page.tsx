@@ -1,11 +1,11 @@
 import { Home } from "@/components/home";
 import type { BarsCard, CutCard, SafeCard } from "@/lib/protocol";
 import { executeTool } from "@/lib/tools";
+import { listPurchases } from "@/lib/purchases";
 
 export const runtime = "nodejs";
-// The demo data is fixed for a deployment, so build the home dashboard once. This keeps the
-// landing page fast and avoids loading DuckDB's native binding on every serverless cold start.
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 async function homeCard<T extends SafeCard | BarsCard | CutCard>(name: string, input: Record<string, unknown>, kind: T["kind"]): Promise<T> {
   const outcome = await executeTool(name, input);
@@ -15,10 +15,11 @@ async function homeCard<T extends SafeCard | BarsCard | CutCard>(name: string, i
 }
 
 export default async function Page() {
-  const [safe, baskets, cut] = await Promise.all([
+  const [safe, baskets, cut, simulation] = await Promise.all([
     homeCard<SafeCard>("safe_to_spend", {}, "safe_to_spend"),
     homeCard<BarsCard>("spend_by", { group_by: "basket", period: "all" }, "bars"),
     homeCard<CutCard>("simulate_cut", { category: "Restaurants", pct: 20 }, "cut"),
+    listPurchases(),
   ]);
-  return <Home safe={safe} baskets={baskets} cut={cut} />;
+  return <Home safe={safe} baskets={baskets} cut={cut} simulation={simulation} />;
 }

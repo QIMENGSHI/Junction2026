@@ -195,10 +195,12 @@ bill_lines as (
 ),
 last12 as (select * from period_bounds('last_12_months', as_of, null, null)),
 buf as (
-    select round(avg(mb.irregular_eur), 2)::decimal(12,2) as monthly_eur,
-           round(avg(mb.irregular_eur) * any_value(pd.days) / 30.4375, 2)::decimal(12,2) as due_eur
-    from monthly_baskets mb, last12, pd
-    where mb.customer_id = customer and mb.month between last12.period_start and last12.period_end
+    -- Live own spending; dividing by the whole period includes months with no purchases.
+    select round(i.eur / last12.period_months, 2)::decimal(12,2) as monthly_eur,
+           round(i.eur / last12.period_months * pd.days / 30.4375, 2)::decimal(12,2) as due_eur
+    from (select coalesce(-sum(m.tx_amount_eur), 0) as eur from mine m, last12
+          where m.basket = 'irregular' and m.tx_date between last12.period_start and last12.period_end) i,
+         last12, pd
 ),
 irr as (
     select coalesce(list(m.tx_id order by m.tx_id), []::integer[]) as tx_ids
@@ -307,11 +309,28 @@ where c.cut_pct = pct::integer;
 --    who spend in that category (24 months of data). percentile = share of those peers who
 --    spend less than the customer. Rows sorted by times_peer_avg, highest first.
 create or replace macro benchmark(customer, only_category := null) as table
-with me as (select cc.* from customer_category cc where cc.customer_id = customer),
+with me as (
+    select c.customer_id, c.age_band, cats.category,
+           coalesce(s.total_eur, 0) as total_eur,
+           round(coalesce(s.total_eur, 0) / (select value::integer from meta where key = 'months'), 2)::decimal(12,2) as per_month_eur,
+           coalesce(s.n_tx, 0)::integer as n_tx
+    from customers c
+    cross join (select distinct category from customer_category) cats
+    left join (select category, -sum(tx_amount_eur) as total_eur, count(*)::integer as n_tx
+               from transactions where customer_id = customer and flow = 'spending' group by category) s
+      on s.category = cats.category
+    where c.customer_id = customer
+),
+comparison as (
+    select cc.customer_id, cc.age_band, cc.category, cc.total_eur, cc.n_tx
+    from customer_category cc where cc.customer_id <> customer
+    union all
+    select me.customer_id, me.age_band, me.category, me.total_eur, me.n_tx from me
+),
 ranked as (
     select cc.customer_id, cc.category,
            percent_rank() over (partition by cc.category order by cc.total_eur) as pr
-    from customer_category cc
+    from comparison cc
     where cc.n_tx > 0
       and cc.age_band = (select c.age_band from customers c where c.customer_id = customer)
 ),
@@ -327,6 +346,7 @@ select me.category, me.age_band, me.per_month_eur as you_per_month, me.n_tx as y
        round(100 * r.pr)::integer as percentile,
        coalesce(mine_ids.tx_ids, []::integer[]) as tx_ids
 from me
+-- Peer averages stay the verified baseline; the customer's figures and rank are live.
 join peer_category pc on pc.age_band = me.age_band and pc.category = me.category
 left join ranked r on r.customer_id = me.customer_id and r.category = me.category
 left join mine_ids on mine_ids.category = me.category
@@ -394,10 +414,9 @@ top as (
     group by h.category order by eur desc, h.category limit 1
 ),
 peer as (
-    select cc.per_month_eur as you, pc.avg_per_month as peers, pc.age_band
-    from customer_category cc
-    join peer_category pc on pc.age_band = cc.age_band and pc.category = cc.category
-    where cc.customer_id = customer and cc.category = (select category from top)
+    -- Reuse the live own-customer figures; only the age-band baseline is precomputed.
+    select you_per_month as you, peers_avg_per_month as peers, age_band
+    from benchmark(customer, only_category := (select category from top))
 ),
 lines as (
     select 1 as line, 'persona' as kind, 'persona' as key, persona.name as title,

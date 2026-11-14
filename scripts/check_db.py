@@ -95,7 +95,7 @@ def passes(got, expected):
 
 
 def main(db=DB):
-    con = duckdb.connect(str(db), read_only=True)
+    con = duckdb.connect(str(db), read_only=not str(db).startswith("md:"))
     failed = 0
     for name, sql, expected in CHECKS:
         try:

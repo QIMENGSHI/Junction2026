@@ -4,6 +4,13 @@ export type Language = DisplayLanguage;
 
 export const COPY = {
   en: {
+    simulatePurchase: "Simulate a purchase",
+    dinner: "Dinner", taxi: "Taxi", groceries: "Groceries", dentist: "Dentist",
+    purchaseAmount: "Amount (€)", addPurchase: "Add purchase", resetDemo: "Reset",
+    simulated: "Simulated", simulatedCount: "{count} simulated purchases",
+    updating: "Updating…", purchaseFailed: "Couldn’t update the demo. Try again.",
+    simulationHelp: "Demo purchases update the shared account on all devices.",
+    liveUnavailable: "Live data unavailable. Showing the last update.",
     tagline: "Your money in three baskets",
     home: "Home",
     coach: "Coach",
@@ -57,6 +64,13 @@ export const COPY = {
     base: "base",
   },
   fi: {
+    simulatePurchase: "Simuloi ostos",
+    dinner: "Illallinen", taxi: "Taksi", groceries: "Ruokaostokset", dentist: "Hammaslääkäri",
+    purchaseAmount: "Summa (€)", addPurchase: "Lisää ostos", resetDemo: "Palauta",
+    simulated: "Simuloitu", simulatedCount: "{count} simuloitua ostosta",
+    updating: "Päivitetään…", purchaseFailed: "Päivitys ei onnistunut. Yritä uudelleen.",
+    simulationHelp: "Demo-ostokset päivittävät yhteisen tilin kaikilla laitteilla.",
+    liveUnavailable: "Reaaliaikainen tieto ei ole saatavilla. Näytetään viimeisin päivitys.",
     tagline: "Rahasi kolmessa korissa",
     home: "Koti",
     coach: "Valmentaja",

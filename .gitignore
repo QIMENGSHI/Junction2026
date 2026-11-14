@@ -12,6 +12,7 @@ next-env.d.ts
 
 # Python
 __pycache__/
+.venv/
 
 # DuckDB scratch files (the build never leaves them, but a crashed write can)
 db/*.wal

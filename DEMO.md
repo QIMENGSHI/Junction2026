@@ -16,6 +16,11 @@ Open Home. Point to **€467.40 safe to spend this week**. Say: “This already 
 
 Open **How I calculated this**. Show the balance, housing, normal running costs, irregular buffer and savings goal. Tap a line to reveal the real transactions behind it.
 
+With MotherDuck enabled, tap **Simulate a purchase → Dinner → Add purchase**.
+“A €150 dinner changes this week's allowance from €467.40 to €397.40.” A second
+visible device follows within five seconds. Reset before continuing the original
+stage flow, or use `npm run purchase -- reset` from the laptop.
+
 **0:55–1:30 — A precise question**
 
 Open Coach and ask: **“How much did I spend on taxis last month?”**
@@ -56,6 +61,7 @@ The Finnish toggle exposes equivalent Finnish prompts. With no Anthropic key, th
 ## Backup recording checklist
 
 1. Use a 390 × 844 phone viewport, light mode, and start on Home.
+   For the live version, run `npm run purchase -- reset` and verify €467.40 first.
 2. Restart the app immediately before recording so the DuckDB connection is warm.
 3. Record the stage flow above in one take; target 2:40–2:50.
 4. Keep the no-key demo active for deterministic timing.

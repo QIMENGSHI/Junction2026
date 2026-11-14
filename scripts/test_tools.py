@@ -302,10 +302,33 @@ def guards(con, check):
           f"({ms:.0f} ms per call)", not problems, problems[:3])
 
 
+def live_equivalence(con, check):
+    # Compare unrounded averages, then the rounded reserve, across all customers.
+    mismatch = con.execute("""
+        with p as (select * from period_bounds('last_12_months', null, null, null)),
+        old as (select customer_id, avg(irregular_eur) as eur from monthly_baskets, p
+                where month between p.period_start and p.period_end group by customer_id),
+        live as (select c.customer_id, coalesce(-sum(t.tx_amount_eur), 0) / any_value(p.period_months) as eur
+                 from customers c cross join p left join transactions t
+                   on t.customer_id = c.customer_id and t.basket = 'irregular'
+                   and t.tx_date between p.period_start and p.period_end group by c.customer_id)
+        select count(*) from old join live using (customer_id) where abs(old.eur - live.eur) > 0.00001
+    """).fetchone()[0]
+    check("live irregular average equals zero-filled monthly average for every customer", mismatch == 0, mismatch)
+    sample = con.execute("select customer_id from customers order by customer_id limit 12").fetchall() + [(DEMO,)]
+    for (customer,) in sample:
+        got = q(con, "select category, you_per_month, your_purchases from benchmark($c)", c=customer)
+        expected = {r["category"]: r for r in q(con,
+            "select category, per_month_eur, n_tx from customer_category where customer_id = $c", c=customer)}
+        check(f"live benchmark matches baseline for {customer}", all(
+            r["you_per_month"] == expected[r["category"]]["per_month_eur"]
+            and r["your_purchases"] == expected[r["category"]]["n_tx"] for r in got))
+
+
 def main(db=DB):
     con = duckdb.connect(str(db), read_only=True)
     check = Checks()
-    for part in (demo, by_hand, guards):
+    for part in (demo, by_hand, guards, live_equivalence):
         try:
             part(con, check)
         except Exception as e:  # a broken tool fails its part, not the whole run

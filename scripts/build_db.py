@@ -142,6 +142,7 @@ def build(con):
         ('duckdb_version', version())
     ) t(key, value)
     """)
+    con.execute("insert into meta values ('simulation_revision', '0')")
 
     con.execute("""
     create table monthly_baskets as
