@@ -1,0 +1,20 @@
+# dependencies and builds
+node_modules/
+.next/
+out/
+.vercel/
+next-env.d.ts
+*.tsbuildinfo
+
+# secrets: keep the API key out of git
+.env*.local
+.env
+
+# Python
+__pycache__/
+
+# DuckDB scratch files (the build never leaves them, but a crashed write can)
+db/*.wal
+db/*.new
+
+.DS_Store

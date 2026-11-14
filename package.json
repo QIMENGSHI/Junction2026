@@ -1,0 +1,39 @@
+{
+  "name": "kori",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kori: a chat money coach that sorts spending into S-Bank's three baskets",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit && node --import tsx scripts/try_tools.ts && node --import tsx scripts/try_chat.ts && node --import tsx scripts/try_demo.ts && node --import tsx scripts/try_history.ts && node --import tsx scripts/try_i18n.ts",
+    "try:tools": "tsx scripts/try_tools.ts",
+    "try:chat": "tsx scripts/try_chat.ts",
+    "try:demo": "tsx scripts/try_demo.ts",
+    "try:history": "tsx scripts/try_history.ts",
+    "try:i18n": "tsx scripts/try_i18n.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "@duckdb/node-api": "1.5.6-r.2",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "recharts": "3.10.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
