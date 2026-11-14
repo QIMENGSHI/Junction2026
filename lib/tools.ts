@@ -133,7 +133,9 @@ async function simulateCut(input: {
   const [row] = await callTool<Omit<CutCard, "kind" | "title">>("simulate_cut", {
     only_category: input.category, only_label: input.label, only_basket: input.basket,
     pct: input.pct, period: input.period,
-  });
+  }, `*, (select count(*)::integer from transactions t
+    where t.customer_id = $customer and t.merchant_id = 'SIMULATED'
+      and list_contains(tx_ids, t.tx_id)) as simulated_purchases`);
   const card: CutCard = { kind: "cut", title: subjectOf(input), ...row };
   const model = {
     shown_as: "what-if slider card (0-100%)",
@@ -143,7 +145,8 @@ async function simulateCut(input: {
     monthly_saving: row.monthly_saving, yearly_saving: row.yearly_saving,
     weekly_now: row.weekly_now, weekly_after: row.weekly_after, weekly_saving: row.weekly_saving,
     safe_to_spend_week: row.safe_to_spend_week,
-    averaged_over: { start: row.period_start, end: row.period_end, purchases: row.purchases },
+    averaged_over: { start: row.period_start, end: row.period_end, purchases: row.purchases,
+      simulated_purchases: row.simulated_purchases },
   };
   return { model, card };
 }

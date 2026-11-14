@@ -25,7 +25,15 @@ export function CutCard({ card }: { card: CutCardData }) {
 
   return (
     <CardFrame
-      title={`${displayName(card.title, language)} · ${t("planTitle")}`}>
+      title={`${displayName(card.title, language)} · ${t("planTitle")}`}
+      meta={periodLabel(card.period_start, card.period_end, language)}>
+      <p className="mb-3 flex items-baseline justify-between gap-3 text-sm">
+        <span className="text-muted">{t("spendingPerMonth")}</span>
+        <span className="money-col font-semibold">{eur(card.monthly_now, language)}</span>
+      </p>
+      {!!card.simulated_purchases && <p className="mb-3 w-fit rounded-full bg-wash px-2 py-1 text-xs font-semibold text-accent">
+        {t(card.simulated_purchases === 1 ? "simulatedSingle" : "simulatedCount", { count: card.simulated_purchases })}
+      </p>}
       <label className="block">
         <span className="flex items-baseline justify-between text-sm">
           <span>{t("cutBy")}</span>
@@ -46,7 +54,7 @@ export function CutCard({ card }: { card: CutCardData }) {
         </div>
       </dl>
       <details className="mt-4 text-xs text-muted">
-        <summary className="cursor-pointer py-2">{t("base")}: {periodLabel(card.period_start, card.period_end, language)}</summary>
+        <summary className="cursor-pointer py-2">{t("weeklyEquivalent")}</summary>
         <p className="py-2 leading-relaxed">{t("spendNow", { now: eur(card.weekly_now, language), after: eur(at.weekly, language) })}</p>
       </details>
       <ShowTransactions ids={card.tx_ids} />

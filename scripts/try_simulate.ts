@@ -32,6 +32,9 @@ async function main() {
     assert(before.ok && before.card.kind === "number");
     const monthBefore = await executeTool("spend_by", { group_by: "basket", period: "this_month" });
     assert(monthBefore.ok && monthBefore.card.kind === "bars");
+    const cutBefore = await executeTool("simulate_cut", { category: "Restaurants", pct: 20, period: "this_month" });
+    assert(cutBefore.ok && cutBefore.card.kind === "cut");
+    assert.equal(cutBefore.card.simulated_purchases, 0);
     const benchmarkBefore = await executeTool("benchmark", { category: "Restaurants" });
     assert(benchmarkBefore.ok && benchmarkBefore.card.kind === "benchmark");
     const profileBefore = await executeTool("spender_profile", {});
@@ -47,6 +50,15 @@ async function main() {
     assert.equal(after.card.n, before.card.n + 1);
     const rows = await transactionsByIds([first.purchases[0].tx_id]);
     assert.equal(rows[0].merchant_id, "SIMULATED");
+    const cutAfter = await executeTool("simulate_cut", { category: "Restaurants", pct: 20, period: "this_month" });
+    assert(cutAfter.ok && cutAfter.card.kind === "cut");
+    assert.equal(cutAfter.card.monthly_now, Math.round((cutBefore.card.monthly_now + 150) * 100) / 100);
+    assert.equal(cutAfter.card.monthly_saving, Math.round((cutBefore.card.monthly_saving + 30) * 100) / 100);
+    assert.equal(cutAfter.card.simulated_purchases, 1);
+    assert.equal(cutAfter.card.purchases, cutBefore.card.purchases + 1);
+    assert(cutAfter.card.tx_ids.includes(first.purchases[0].tx_id));
+    const at30 = cutAfter.card.pct_steps.indexOf(30);
+    assert.equal(cutAfter.card.monthly_saving_steps[at30], Math.round((cutBefore.card.monthly_saving_steps[at30] + 45) * 100) / 100);
     const benchmarkAfter = await executeTool("benchmark", { category: "Restaurants" });
     assert(benchmarkAfter.ok && benchmarkAfter.card.kind === "benchmark");
     assert.equal(benchmarkAfter.card.rows[0].your_purchases, benchmarkBefore.card.rows[0].your_purchases + 1);
@@ -70,6 +82,10 @@ async function main() {
     assert.equal(historical.card.rows.find((r) => r.key === "everyday")?.per_month_eur, 1480.72);
     assert.equal(historical.card.total.per_month_eur, 3242.63);
     assert.equal(historical.card.monthly_rounding_eur, 0.01);
+    const scopedCut = await executeTool("simulate_cut", { category: "Restaurants", pct: 20, period: "this_month" });
+    assert(scopedCut.ok && scopedCut.card.kind === "cut");
+    assert.equal(scopedCut.card.simulated_purchases, 1); // Taxi and groceries do not belong to Restaurants.
+    assert.equal(scopedCut.card.monthly_now, cutAfter.card.monthly_now);
     const roundedParts = historical.card.rows.reduce((cents, r) => cents + Math.round(r.per_month_eur * 100), 0);
     assert.equal(roundedParts + Math.round(historical.card.monthly_rounding_eur * 100), Math.round(historical.card.total.per_month_eur * 100));
 
@@ -86,6 +102,23 @@ async function main() {
     }
     await resetPurchases();
     assert.equal(await weekly(), 467.4);
+    // The reported €2,000 dinner must appear in the current month's what-if card in full.
+    const dinner2000 = await addPurchase({ preset: "dinner", amount_eur: 2000 });
+    const monthCut = await executeTool("simulate_cut", { category: "Restaurants", pct: 30, period: "this_month" });
+    assert(monthCut.ok && monthCut.card.kind === "cut");
+    assert.equal(monthCut.card.monthly_now, 2133.87);
+    assert.equal(monthCut.card.monthly_saving, 640.16);
+    assert.equal(monthCut.card.simulated_purchases, 1);
+    assert.equal(monthCut.card.purchases, 11);
+    assert(monthCut.card.tx_ids.includes(dinner2000.purchases[0].tx_id));
+    const averageCut = await executeTool("simulate_cut", { category: "Restaurants", pct: 30, period: "all" });
+    assert(averageCut.ok && averageCut.card.kind === "cut");
+    assert.equal(averageCut.card.monthly_saving, 187.1);
+    await resetPurchases();
+    const resetCut = await executeTool("simulate_cut", { category: "Restaurants", pct: 20, period: "this_month" });
+    assert(resetCut.ok && resetCut.card.kind === "cut");
+    assert.equal(resetCut.card.simulated_purchases, 0);
+    assert.equal(resetCut.card.monthly_now, cutBefore.card.monthly_now);
     await addPurchase({ preset: "dentist" });
     const [buffer] = await query<{ actual: number; expected: number }>(`select
       (select -eur from safe_to_spend($c) where key='buffer') as actual,
@@ -126,7 +159,7 @@ async function main() {
       method: "DELETE", headers: { origin: "https://kori.test" },
     }))).status, 200);
     assert.equal(await weekly(), 467.4);
-    console.log("All purchase integration checks passed: baseline, dinner, basket reconciliation, rounding, dentist, live tools, reset, balances, validation, concurrency and cap.");
+    console.log("All purchase integration checks passed: baseline, dinner, basket reconciliation, what-if updates and reset, rounding, dentist, live tools, balances, validation, concurrency and cap.");
   } finally {
     (await instance()).closeSync();
     await rm(directory, { recursive: true, force: true });

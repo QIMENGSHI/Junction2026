@@ -66,7 +66,7 @@ export function Home({ safe, baskets, cut, simulation }: { safe: SafeCardData; b
           {simulation.enabled && <div className="px-1">
             <button type="button" onClick={() => setSheet(true)} className="min-h-11 text-sm font-semibold text-accent">+ {t("simulatePurchase")}</button>
             {simulation.purchases.length > 0 && <div className="flex items-center justify-between gap-2 rounded-xl bg-surface px-3 py-1 text-xs">
-              <span>{t("simulatedCount", { count: simulation.purchases.length })}</span>
+              <span>{t(simulation.purchases.length === 1 ? "simulatedSingle" : "simulatedCount", { count: simulation.purchases.length })}</span>
               <button type="button" disabled={resetting} className="min-h-11 font-semibold text-accent disabled:opacity-50" onClick={async () => {
                 setResetting(true); setFailed(false);
                 try {

@@ -86,6 +86,7 @@ export type CutCard = {
   weekly_saving: number;
   safe_to_spend_week: number;
   purchases: number;
+  simulated_purchases?: number;
   period_start: string;
   period_end: string;
   pct_steps: number[];

@@ -35,9 +35,14 @@ Show the three basket bars, then the everyday breakdown. Point out that restaura
 
 **2:05–2:35 — Turn insight into action**
 
-Return Home or ask: **“What if I cut dining out by 20%?”**
+Ask: **“What if I cut dining out by 20%?”**
 
 Move the slider. At 20%, the verified result is **€108.07 a month** and **€1,296.82 a year**. Every slider step is precomputed by SQL; the browser only displays it.
+
+Home's what-if card instead uses September spending, matching its basket totals.
+Restaurant demo purchases appear in that month's spending basis and transaction
+list, with a simulated-purchase count. Chat's default what-if uses the historical
+monthly average; both cards show their dates.
 
 **2:35–2:50 — Personal context**
 
