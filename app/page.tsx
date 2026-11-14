@@ -3,7 +3,9 @@ import type { BarsCard, CutCard, SafeCard } from "@/lib/protocol";
 import { executeTool } from "@/lib/tools";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// The demo data is fixed for a deployment, so build the home dashboard once. This keeps the
+// landing page fast and avoids loading DuckDB's native binding on every serverless cold start.
+export const dynamic = "force-static";
 
 async function homeCard<T extends SafeCard | BarsCard | CutCard>(name: string, input: Record<string, unknown>, kind: T["kind"]): Promise<T> {
   const outcome = await executeTool(name, input);

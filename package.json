@@ -5,7 +5,7 @@
   "description": "Kori: a chat money coach that sorts spending into S-Bank's three baskets",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit && node --import tsx scripts/try_tools.ts && node --import tsx scripts/try_chat.ts && node --import tsx scripts/try_demo.ts && node --import tsx scripts/try_history.ts && node --import tsx scripts/try_i18n.ts",
