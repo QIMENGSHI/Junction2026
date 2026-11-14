@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { CUSTOMER } from "./config";
-import { dbMode, instance, query } from "./db";
+import { connect, dbMode, query } from "./db";
 import { PURCHASE_PRESETS, type PurchaseState, type PurchaseSummary } from "./purchase-presets";
 
 export const purchaseInput = z.object({
@@ -34,7 +34,7 @@ async function write(action: (connection: DuckDBConnection) => Promise<void>) {
   const run = pending.then(async () => {
     if (await dbMode() === "local") throw new PurchaseError("Live purchases are unavailable in offline mode.", 503);
     for (let attempt = 0; attempt < 3; attempt++) {
-      const connection = await (await instance()).connect();
+      const connection = await connect();
       try {
         await connection.run("begin transaction");
         const revision = await connection.runAndReadAll(`update meta set value = (value::bigint + 1)::varchar

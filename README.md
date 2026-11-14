@@ -79,6 +79,12 @@ Keep the token server-only. Choose a MotherDuck organization in AWS `eu-central-
 Vercel functions are configured for `fra1`. Confirm the challenge's data terms permit
 uploading the dataset before running the upload script.
 
+On Vercel, DuckDB is initialized in memory with `/tmp` directories before installing
+and loading the MotherDuck extension, then attaching the hosted database. Direct
+`md:` initialization tries to resolve an unset home directory too early in this
+runtime. The initialized instance is cached per process; every query connection
+explicitly selects the hosted catalog before running SQL.
+
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
