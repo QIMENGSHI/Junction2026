@@ -38,10 +38,11 @@ function tool<S extends z.ZodObject>(spec: {
 
 /** Calls one SQL tool (a table macro) for the demo customer. Only arguments that are set are
  *  passed, so every default lives in one place, the SQL. Macro and argument names come from
- *  this file; values are always bound, never pasted into the SQL text. */
-async function callTool<T>(macro: string, args: Record<string, SqlParam | undefined>): Promise<T[]> {
+ *  this file; values are always bound, never pasted into the SQL text. Projection is fixed
+ *  application SQL, never tool input. */
+async function callTool<T>(macro: string, args: Record<string, SqlParam | undefined>, projection = "*"): Promise<T[]> {
   const set = Object.entries(args).filter((entry): entry is [string, SqlParam] => entry[1] !== undefined);
-  const sql = `select * from ${macro}($customer${set.map(([name]) => `, ${name} := $${name}`).join("")})`;
+  const sql = `select ${projection} from ${macro}($customer${set.map(([name]) => `, ${name} := $${name}`).join("")})`;
   return query<T>(sql, { customer: CUSTOMER, ...Object.fromEntries(set) });
 }
 
@@ -57,7 +58,7 @@ function subjectOf(input: { label?: string; category?: string; basket?: string; 
 
 // ------------------------------------------------------------------ the tools
 
-type SpendSqlRow = SpendRow & { is_total: boolean; period_start: string; period_end: string; period_months: number };
+type SpendSqlRow = SpendRow & { is_total: boolean; period_start: string; period_end: string; period_months: number; monthly_rounding_eur: number };
 
 const GROUP_NAMES: Record<(typeof GROUPINGS)[number], string> = {
   total: "total", category: "category", label: "type", basket: "basket", month: "month", weekday: "weekday",
@@ -68,10 +69,14 @@ async function spendBy(input: {
   group_by: (typeof GROUPINGS)[number]; period: (typeof PERIODS)[number]; from_date?: string; to_date?: string;
   flow?: Flow; category?: string; label?: string; basket?: string;
 }): Promise<ToolResult> {
+  // Preserve each correctly rounded average and expose any cent difference explicitly.
+  // The browser never adds or alters monetary values to make the chart reconcile.
   const rows = await callTool<SpendSqlRow>("spend_by", {
     group_by: input.group_by, period: input.period, from_date: input.from_date, to_date: input.to_date,
     only_flow: input.flow, only_category: input.category, only_label: input.label, only_basket: input.basket,
-  });
+  }, `*, case when is_total then coalesce(per_month_eur -
+    sum(per_month_eur) filter (where not is_total) over (), 0)
+    else 0 end::decimal(12,2) as monthly_rounding_eur`);
   const total = rows.find((row) => row.is_total);
   if (!total) throw new Error("spend_by returned no total row");
   const period: Period = { start: total.period_start, end: total.period_end, months: total.period_months };
@@ -86,6 +91,7 @@ async function spendBy(input: {
     : {
         kind: "bars", title: `${subject} by ${GROUP_NAMES[input.group_by]}`, group_by: input.group_by,
         basket: input.basket ?? null, flow, period, rows: groups, total: pick(total),
+        monthly_rounding_eur: total.monthly_rounding_eur,
       };
 
   const monthly = period.months > 1; // per-month averages only mean something over several months
@@ -93,7 +99,8 @@ async function spendBy(input: {
     shown_as: card.kind === "number" ? "number card" : "bar chart",
     period,
     flow,
-    total: { eur: total.eur, transactions: total.n, ...(monthly ? { per_month_eur: total.per_month_eur } : {}) },
+    total: { eur: total.eur, transactions: total.n, ...(monthly ? { per_month_eur: total.per_month_eur,
+      monthly_rounding_eur: total.monthly_rounding_eur } : {}) },
     ...(groups.length ? {
       groups: groups.map(({ key, eur, n, per_month_eur, share_pct }) =>
         ({ key, eur, transactions: n, ...(monthly ? { per_month_eur } : {}), share_pct })),

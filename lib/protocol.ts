@@ -35,6 +35,8 @@ export type BarsCard = {
   period: Period;
   rows: SpendRow[];
   total: SpendRow;
+  /** Difference between the rounded monthly total and its separately rounded groups. */
+  monthly_rounding_eur?: number;
 };
 
 export type SafeLine = {

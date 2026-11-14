@@ -38,6 +38,9 @@ export function TransactionList({ ids, pageSize = 8 }: { ids: number[]; pageSize
 
   useEffect(() => {
     let alive = true;
+    setRows(null);
+    setFailed(false);
+    setShown(pageSize);
     fetch("/api/transactions", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -47,12 +50,13 @@ export function TransactionList({ ids, pageSize = 8 }: { ids: number[]; pageSize
       .then((data: { rows: TxRow[] }) => alive && setRows(data.rows))
       .catch(() => alive && setFailed(true));
     return () => { alive = false; };
-  }, [ids]);
+  }, [ids, pageSize]);
 
   if (failed) return <p className="mt-2 text-sm text-ink-2">{t("loadFailed")}</p>;
   if (!rows) return <div className="mt-2 h-24 animate-pulse rounded-lg bg-wash" aria-busy="true" />;
   return (
     <div className="mt-2">
+      <p className="mb-1 text-xs text-muted">{t("latestTransactions", { shown: Math.min(shown, rows.length), count: rows.length })}</p>
       <TxRows rows={rows.slice(0, shown)} />
       {rows.length > shown && (
         <button type="button" onClick={() => setShown(rows.length)} className="mt-1 text-sm font-medium text-accent">

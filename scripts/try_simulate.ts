@@ -30,6 +30,8 @@ async function main() {
     assert.equal(await weekly(), 467.4);
     const before = await executeTool("spend_by", { group_by: "total", category: "Restaurants", period: "last_month" });
     assert(before.ok && before.card.kind === "number");
+    const monthBefore = await executeTool("spend_by", { group_by: "basket", period: "this_month" });
+    assert(monthBefore.ok && monthBefore.card.kind === "bars");
     const benchmarkBefore = await executeTool("benchmark", { category: "Restaurants" });
     assert(benchmarkBefore.ok && benchmarkBefore.card.kind === "benchmark");
     const profileBefore = await executeTool("spender_profile", {});
@@ -52,6 +54,36 @@ async function main() {
     assert(profileAfter.ok && profileAfter.card.kind === "profile");
     assert.notEqual(profileAfter.card.rows.find((r) => r.key === "vs_peers")?.text,
       profileBefore.card.rows.find((r) => r.key === "vs_peers")?.text);
+
+    const monthAfterDinner = await executeTool("spend_by", { group_by: "basket", period: "this_month" });
+    assert(monthAfterDinner.ok && monthAfterDinner.card.kind === "bars");
+    assert.equal(Math.round(monthAfterDinner.card.total.eur * 100) - Math.round(monthBefore.card.total.eur * 100), 15000);
+
+    // Reproduce the screenshot: €3,195 everyday spending and €1,000 groceries.
+    // Actual monthly spending must include the full purchases; historical averages divide by 24.
+    await addPurchase({ preset: "taxi" });
+    for (let i = 0; i < 3; i++) await addPurchase({ preset: "taxi", amount_eur: 1000 });
+    await addPurchase({ preset: "groceries", amount_eur: 1000 });
+    const historical = await executeTool("spend_by", { group_by: "basket", period: "all" });
+    assert(historical.ok && historical.card.kind === "bars");
+    assert.equal(historical.card.rows.find((r) => r.key === "regular")?.per_month_eur, 1481.89);
+    assert.equal(historical.card.rows.find((r) => r.key === "everyday")?.per_month_eur, 1480.72);
+    assert.equal(historical.card.total.per_month_eur, 3242.63);
+    assert.equal(historical.card.monthly_rounding_eur, 0.01);
+    const roundedParts = historical.card.rows.reduce((cents, r) => cents + Math.round(r.per_month_eur * 100), 0);
+    assert.equal(roundedParts + Math.round(historical.card.monthly_rounding_eur * 100), Math.round(historical.card.total.per_month_eur * 100));
+
+    const currentMonth = await executeTool("spend_by", { group_by: "basket", period: "this_month" });
+    assert(currentMonth.ok && currentMonth.card.kind === "bars");
+    assert.equal(currentMonth.card.period.months, 1);
+    assert.equal(currentMonth.card.total.eur, 7972.73);
+    assert.equal(Math.round(currentMonth.card.total.eur * 100) - Math.round(monthBefore.card.total.eur * 100), 419500);
+    assert.equal(currentMonth.card.rows.reduce((cents, r) => cents + Math.round(r.eur * 100), 0), 797273);
+    for (const basket of currentMonth.card.rows) {
+      const transactions = await transactionsByIds(basket.tx_ids);
+      assert(transactions.every((r) => r.date >= "2026-09-01" && r.date <= "2026-09-30"));
+      assert.equal(transactions.reduce((cents, r) => cents - Math.round(r.amount_eur * 100), 0), Math.round(basket.eur * 100));
+    }
     await resetPurchases();
     assert.equal(await weekly(), 467.4);
     await addPurchase({ preset: "dentist" });
@@ -94,7 +126,7 @@ async function main() {
       method: "DELETE", headers: { origin: "https://kori.test" },
     }))).status, 200);
     assert.equal(await weekly(), 467.4);
-    console.log("All purchase integration checks passed: baseline, dinner, dentist, live tools, reset, balances, validation, concurrency and cap.");
+    console.log("All purchase integration checks passed: baseline, dinner, basket reconciliation, rounding, dentist, live tools, reset, balances, validation, concurrency and cap.");
   } finally {
     (await instance()).closeSync();
     await rm(directory, { recursive: true, force: true });

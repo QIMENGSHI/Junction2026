@@ -17,7 +17,7 @@ async function homeCard<T extends SafeCard | BarsCard | CutCard>(name: string, i
 export default async function Page() {
   const [safe, baskets, cut, simulation] = await Promise.all([
     homeCard<SafeCard>("safe_to_spend", {}, "safe_to_spend"),
-    homeCard<BarsCard>("spend_by", { group_by: "basket", period: "all" }, "bars"),
+    homeCard<BarsCard>("spend_by", { group_by: "basket", period: "this_month" }, "bars"),
     homeCard<CutCard>("simulate_cut", { category: "Restaurants", pct: 20 }, "cut"),
     listPurchases(),
   ]);

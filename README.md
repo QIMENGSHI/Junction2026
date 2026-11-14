@@ -120,6 +120,11 @@ and refreshes on returning to the tab. All six tools read the customer's own spe
 live. The peer cohort averages remain the original verified baseline. Previously
 rendered chat answers are historical; ask a new question for current figures.
 
+Home's baskets show actual spending in the current demo month, including each new
+purchase in full. Their transaction lists cover that same month. Historical chat
+charts explicitly label monthly averages, show the full period total when expanded,
+and expose any cent difference from rounding. Bar lengths match the printed shares.
+
 Simulation rows have `merchant_id='SIMULATED'`. Reset deletes only those rows for
 the server-selected customer and restores the original balance chain. Amounts are
 €1–€5,000, at most 20 rows. Transactions update a revision row before inserting,

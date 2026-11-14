@@ -35,18 +35,17 @@ export function BarsCard({ card }: { card: BarsCardData }) {
 
   const perMonth = card.period.months > 1 && card.group_by !== "weekday";
   const value = (row: SpendRow) => (perMonth ? row.per_month_eur : row.eur);
-  const longest = Math.max(...card.rows.map(value), 0); // bar widths only; no figure is computed here
   const color = (row: SpendRow) => basketColor(card.group_by === "basket" ? row.key : card.basket);
 
   return (
-    <CardFrame title={card.group_by === "basket" ? t("basketTitle") : cardTitle(card.title, language)} meta={`${perMonth ? `${t("perMonth")} · ` : ""}${periodLabel(card.period.start, card.period.end, language)}`}>
+    <CardFrame title={card.group_by === "basket" ? t("basketTitle") : cardTitle(card.title, language)} meta={`${perMonth ? `${t("monthlyAverage")} · ` : ""}${periodLabel(card.period.start, card.period.end, language)}`}>
       {card.rows.length === 0 && <p className="text-sm text-ink-2">{language === "fi" ? "Ei menoja tällä jaksolla." : "Nothing in this period."}</p>}
       <ul className="flex flex-col gap-1">
         {card.rows.map((row) => (
           <li key={row.key}>
             <button type="button" onClick={() => setOpen(open === row.key ? null : row.key)} aria-expanded={open === row.key}
               className="min-h-16 w-full rounded-lg px-1 py-2 text-left hover:bg-wash"
-              title={`${displayName(groupName(row.key), language)}: ${eur(value(row), language)}${perMonth ? ` ${t("perMonth")}` : ""}, ${row.n} ${t("transactions")}`}>
+              title={`${displayName(groupName(row.key), language)}: ${eur(value(row), language)}${perMonth ? ` ${t("perMonth")}` : ""}, ${row.n} ${t(row.n === 1 ? "transaction" : "transactions")}`}>
               <span className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="truncate">{displayName(groupName(row.key), language)}</span>
                 <span className="money-col shrink-0">
@@ -56,13 +55,23 @@ export function BarsCard({ card }: { card: BarsCardData }) {
               </span>
               <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-wash">
                 <span className="block h-1.5 rounded-full"
-                  style={{ width: `${longest ? (value(row) / longest) * 100 : 0}%`, background: color(row) }} />
+                  style={{ width: `${Math.max(0, Math.min(100, row.share_pct ?? 0))}%`, background: color(row) }} />
               </span>
             </button>
-            {open === row.key && <div className="px-1"><TransactionList ids={row.tx_ids} /></div>}
+            {open === row.key && <div className="px-1 pb-2">
+              {perMonth && <p className="mt-2 flex items-baseline justify-between gap-2 border-t border-line pt-2 text-xs text-muted">
+                <span>{t("periodTotal")} · {periodLabel(card.period.start, card.period.end, language)}</span>
+                <span className="money-col shrink-0">{eur(row.eur, language)}</span>
+              </p>}
+              <TransactionList ids={row.tx_ids} />
+            </div>}
           </li>
         ))}
       </ul>
+      {perMonth && !!card.monthly_rounding_eur && <p className="mt-2 flex justify-between px-1 text-xs text-muted">
+        <span>{t("rounding")}</span>
+        <span className="money-col">{signedEur(card.monthly_rounding_eur, language)}</span>
+      </p>}
       <p className="mt-2 flex justify-between border-t border-line px-1 pt-2 text-sm">
         <span className="text-ink-2">{t("total")}</span>
         <span className="money-col font-medium">{eur(value(card.total), language)}{perMonth && <span className="font-normal text-ink-2"> {t("perMonth")}</span>}</span>
