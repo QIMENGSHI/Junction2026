@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CarTaxiFront, ChevronRight, ShoppingBasket, UserRound, UsersRound, UtensilsCrossed, Wallet } from "lucide-react";
 import { AppHeader } from "./app-header";
 import { AppNav } from "./app-nav";
 import { CardView, PendingCard } from "./cards/card-view";
@@ -31,14 +32,7 @@ const SHORT_LABELS = {
   fi: ["Taksimenot", "Kolme koriani", "Viikon käyttövara", "Säästä ravintoloista", "Vertaa ikäisiini", "Kulutustapani"],
 };
 
-const SHORTCUT_PATHS = [
-  "M5 17H3V9l2-5h14l2 5v8h-2M5 17h14M7 13h.01M17 13h.01M3 9h18M5 17v3m14-3v3",
-  "m7 9 5-6 5 6M3 9h18l-3 12H6L3 9Zm6 4v4m6-4v4",
-  "M18 5a7 7 0 1 0 0 14M4 10h11M4 14h9",
-  "M5 4v6m3-6v6m3-6v6M5 8h6m-3 2v11M19 3c-4 3-4 9 0 9V3Zm0 9v9",
-  "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
-  "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21a8 8 0 0 1 16 0H4Z",
-];
+const SHORTCUT_ICONS = [CarTaxiFront, ShoppingBasket, Wallet, UtensilsCrossed, UsersRound, UserRound];
 
 export function Chat() {
   const { turns, busy, send, reset } = useKoriChat();
@@ -72,13 +66,16 @@ export function Chat() {
               <h1 className="max-w-64 text-3xl font-bold leading-tight tracking-tight">{t("greeting")}</h1>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {SUGGESTIONS[language].map((question, index) => (
-                <button key={question} type="button" onClick={() => ask(question)}
-                  className="flex min-h-24 flex-col items-start justify-between gap-3 rounded-2xl bg-surface p-4 text-left text-sm font-semibold leading-snug hover:bg-wash">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-accent" aria-hidden="true"><path d={SHORTCUT_PATHS[index]} /></svg>
-                  <span className="flex w-full items-center justify-between gap-2">{SHORT_LABELS[language][index]}<span className="text-lg font-normal text-accent" aria-hidden="true">›</span></span>
-                </button>
-              ))}
+              {SUGGESTIONS[language].map((question, index) => {
+                const Icon = SHORTCUT_ICONS[index];
+                return (
+                  <button key={question} type="button" onClick={() => ask(question)}
+                    className="flex min-h-24 flex-col items-start justify-between gap-3 rounded-2xl bg-surface p-4 text-left text-sm font-semibold leading-snug hover:bg-wash">
+                    <Icon size={24} strokeWidth={1.75} className="shrink-0 text-accent" aria-hidden="true" />
+                    <span className="flex w-full items-center justify-between gap-2">{SHORT_LABELS[language][index]}<ChevronRight size={16} strokeWidth={1.75} className="shrink-0 text-accent" aria-hidden="true" /></span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : (
