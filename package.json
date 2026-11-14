@@ -8,7 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "check": "tsc --noEmit && node --import tsx scripts/try_tools.ts && node --import tsx scripts/try_chat.ts && node --import tsx scripts/try_demo.ts && node --import tsx scripts/try_history.ts && node --import tsx scripts/try_i18n.ts && node --import tsx scripts/try_simulate.ts",
+    "check": "tsc --noEmit && node --import tsx scripts/try_tools.ts && node --import tsx scripts/try_chat.ts && node --import tsx scripts/try_demo.ts && node --import tsx scripts/try_history.ts && node --import tsx scripts/try_i18n.ts && node --import tsx scripts/try_layout.ts && node --import tsx scripts/try_simulate.ts",
     "purchase": "tsx scripts/purchase.ts",
     "spike:motherduck": "tsx scripts/spike_motherduck.ts",
     "try:simulate": "tsx scripts/try_simulate.ts",
@@ -16,7 +16,8 @@
     "try:chat": "tsx scripts/try_chat.ts",
     "try:demo": "tsx scripts/try_demo.ts",
     "try:history": "tsx scripts/try_history.ts",
-    "try:i18n": "tsx scripts/try_i18n.ts"
+    "try:i18n": "tsx scripts/try_i18n.ts",
+    "try:layout": "tsx scripts/try_layout.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",

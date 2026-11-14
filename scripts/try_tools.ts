@@ -1,5 +1,7 @@
 // The app's tool layer, run without the model: the demo questions' tool calls, checked.
 //   npm run try:tools
+import { BASKETS, CATEGORY_ORDER, categorySlot } from "../lib/category-colors";
+import { query } from "../lib/db";
 import { systemPrompt } from "../lib/prompt";
 import { apiTools, executeTool, transactionsByIds } from "../lib/tools";
 
@@ -43,6 +45,27 @@ async function main() {
     check("bar chart: restaurants lead the everyday basket at €540.34 a month", q3b.card.rows[0].key === "Restaurants" && q3b.card.rows[0].per_month_eur === 540.34);
     check("the model sees no ids", !leaks(q3a.model) && !leaks(q3b.model));
   } else check("spend_by grouped answered", false, [q3a, q3b]);
+
+  console.log("\nHome: the baskets card and its flip side (this month)");
+  const front = await executeTool("spend_by", { group_by: "basket", period: "this_month" });
+  if (front.ok && front.card.kind === "bars") {
+    for (const basket of BASKETS) {
+      const split = await executeTool("spend_by", { group_by: "category", basket, period: "this_month" });
+      const row = front.card.rows.find((r) => r.key === basket);
+      const ok = split.ok && split.card.kind === "bars" && row !== undefined
+        && split.card.total.eur === row.eur
+        && split.card.rows.reduce((cents, r) => cents + Math.round(r.eur * 100), 0) === Math.round(row.eur * 100)
+        && split.card.rows.every((r) => categorySlot(basket, r.key) !== null);
+      check(`${basket}: categories add up to the front's ${row?.eur} to the cent, each with a color`, ok,
+        split.ok && split.card.kind === "bars" && split.card.rows.map((r) => [r.key, r.eur]));
+    }
+  } else check("spend_by by basket answered", false, front);
+  const seen = await query<{ basket: string; categories: string[] }>(`select basket, list(distinct category order by category) as categories
+    from transactions where flow = 'spending' group by basket order by basket`);
+  check("every category any basket holds (all rows) has a color slot in that basket",
+    seen.every(({ basket, categories }) => categories.every((c) => categorySlot(basket as (typeof BASKETS)[number], c) !== null)), seen);
+  check("no two categories share a color slot within a basket",
+    BASKETS.every((b) => new Set(CATEGORY_ORDER[b]).size === CATEGORY_ORDER[b].length && CATEGORY_ORDER[b].length <= 6));
 
   console.log("\nThe other five tools");
   const safe = await executeTool("safe_to_spend", {});

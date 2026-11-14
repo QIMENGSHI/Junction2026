@@ -27,8 +27,9 @@ export function NumberCard({ card }: { card: NumberCardData }) {
 }
 
 /** Ranked bars: one row per group, value and share printed beside each bar (no hover needed),
- *  tap a row for its transactions. Months get columns instead. */
-export function BarsCard({ card }: { card: BarsCardData }) {
+ *  tap a row for its transactions - or, with onSelect (Home's flip card), hand the row on instead.
+ *  Months get columns instead. */
+export function BarsCard({ card, onSelect, hint }: { card: BarsCardData; onSelect?: (row: SpendRow) => void; hint?: string }) {
   const { language, t } = useLanguage();
   const [open, setOpen] = useState<string | null>(null);
   if (card.group_by === "month") return <MonthColumns card={card} />;
@@ -43,7 +44,10 @@ export function BarsCard({ card }: { card: BarsCardData }) {
       <ul className="flex flex-col gap-1">
         {card.rows.map((row) => (
           <li key={row.key}>
-            <button type="button" onClick={() => setOpen(open === row.key ? null : row.key)} aria-expanded={open === row.key}
+            <button type="button" data-key={row.key}
+              onClick={() => (onSelect ? onSelect(row) : setOpen(open === row.key ? null : row.key))}
+              aria-expanded={onSelect ? undefined : open === row.key}
+              aria-label={onSelect ? t("showCategories", { basket: displayName(groupName(row.key), language) }) : undefined}
               className="min-h-16 w-full rounded-lg px-1 py-2 text-left hover:bg-wash"
               title={`${displayName(groupName(row.key), language)}: ${eur(value(row), language)}${perMonth ? ` ${t("perMonth")}` : ""}, ${row.n} ${t(row.n === 1 ? "transaction" : "transactions")}`}>
               <span className="flex items-baseline justify-between gap-3 text-sm">
@@ -76,6 +80,7 @@ export function BarsCard({ card }: { card: BarsCardData }) {
         <span className="text-ink-2">{t("total")}</span>
         <span className="money-col font-medium">{eur(value(card.total), language)}{perMonth && <span className="font-normal text-ink-2"> {t("perMonth")}</span>}</span>
       </p>
+      {hint && <p className="mt-3 px-1 text-xs text-muted">{hint}</p>}
     </CardFrame>
   );
 }

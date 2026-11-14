@@ -12,6 +12,11 @@ import { CardFrame } from "./card-view";
 /** A gesture that starts on a control belongs to that control (the slider must still drag). */
 const CONTROLS = "input, button, summary, a, select, textarea, label";
 const SWIPE_PX = 40;
+/** An arrow floating over the stack (above every card), vertically centred: a 44px touch target
+ *  around a 36px circle, so the circle keeps clear of the card's text. */
+const ARROW = "group absolute top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full";
+const ARROW_FACE = "flex size-9 items-center justify-center rounded-full bg-surface/90 text-accent shadow-md "
+  + "ring-1 ring-line backdrop-blur-sm transition-transform group-hover:bg-wash group-active:scale-95";
 
 /** Where a card sits relative to the front one: front, peeking right (next), peeking left (previous). */
 function placement(offset: number, count: number): CSSProperties {
@@ -22,8 +27,9 @@ function placement(offset: number, count: number): CSSProperties {
   return { transform: "scale(.9)", zIndex: 0, opacity: 0 };
 }
 
-/** The Try-it ideas as a stack of what-if cards. Swipe, the arrows or the name pills bring
- *  another card to the front. Every figure was computed by SQL; this only chooses which to show. */
+/** The Try-it ideas as a stack of what-if cards. Swipe, or the arrows floating at the screen's
+ *  edges, bring another card to the front; the card's own title names it. Every figure was
+ *  computed by SQL; this only chooses which to show. */
 export function TryItStack({ card }: { card: IdeasCard }) {
   const { language, t } = useLanguage();
   const [active, setActive] = useState(0);
@@ -63,7 +69,7 @@ export function TryItStack({ card }: { card: IdeasCard }) {
   };
 
   return (
-    <section className="isolate min-w-0" aria-roledescription="carousel" aria-label={t("tryItIdeas")} onKeyDown={onKeyDown}>
+    <section className="relative isolate min-w-0" aria-roledescription="carousel" aria-label={t("tryItIdeas")} onKeyDown={onKeyDown}>
       <p className="sr-only" role="status">{t("ideaOf", { n: front + 1, count, name: name(card.ideas[front]) })}</p>
       <div className="relative touch-pan-y px-3 py-2"
         onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { start.current = null; }}>
@@ -80,25 +86,18 @@ export function TryItStack({ card }: { card: IdeasCard }) {
           );
         })}
       </div>
-      {count > 1 && (
-        <div className="mt-2 flex items-center justify-center gap-1">
-          <button type="button" onClick={() => go(front - 1)} aria-label={t("previousIdea")}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full text-accent hover:bg-wash">
-            <ChevronLeft aria-hidden="true" className="size-5" />
-          </button>
-          {card.ideas.map((idea, index) => (
-            <button key={idea.key} type="button" onClick={() => go(index)} aria-current={index === front}
-              aria-label={t("ideaOf", { n: index + 1, count, name: name(idea) })}
-              className={`min-h-11 min-w-0 max-w-28 truncate rounded-full px-3 text-xs font-semibold ${index === front ? "bg-accent text-on-accent" : "bg-surface text-accent"}`}>
-              {name(idea)}
-            </button>
-          ))}
-          <button type="button" onClick={() => go(front + 1)} aria-label={t("nextIdea")}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full text-accent hover:bg-wash">
-            <ChevronRight aria-hidden="true" className="size-5" />
-          </button>
-        </div>
-      )}
+      {count > 1 && <>
+        {/* On top of the cards, halfway down, at the screen's edges: the 14px offset puts them in
+            the page's 16px gutter, clear of the card's text and inside the page (no sideways scroll). */}
+        <button type="button" onClick={() => go(front - 1)} aria-label={t("previousIdea")}
+          className={`${ARROW} -left-3.5`}>
+          <span className={ARROW_FACE}><ChevronLeft aria-hidden="true" className="size-5" /></span>
+        </button>
+        <button type="button" onClick={() => go(front + 1)} aria-label={t("nextIdea")}
+          className={`${ARROW} -right-3.5`}>
+          <span className={ARROW_FACE}><ChevronRight aria-hidden="true" className="size-5" /></span>
+        </button>
+      </>}
     </section>
   );
 }

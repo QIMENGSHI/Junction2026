@@ -32,6 +32,7 @@ async function main() {
     const before = await executeTool("spend_by", { group_by: "total", category: "Restaurants", period: "last_month" });
     assert(before.ok && before.card.kind === "number");
     const monthBefore = await executeTool("spend_by", { group_by: "basket", period: "this_month" });
+    const splitBefore = await executeTool("spend_by", { group_by: "category", basket: "everyday", period: "this_month" });
     assert(monthBefore.ok && monthBefore.card.kind === "bars");
     const cutBefore = await executeTool("simulate_cut", { category: "Restaurants", pct: 20, period: "this_month" });
     assert(cutBefore.ok && cutBefore.card.kind === "cut");
@@ -71,6 +72,12 @@ async function main() {
     const monthAfterDinner = await executeTool("spend_by", { group_by: "basket", period: "this_month" });
     assert(monthAfterDinner.ok && monthAfterDinner.card.kind === "bars");
     assert.equal(Math.round(monthAfterDinner.card.total.eur * 100) - Math.round(monthBefore.card.total.eur * 100), 15000);
+    // The flip side of Home's baskets card follows: Restaurants +€150.00, still equal to the front.
+    const splitAfter = await executeTool("spend_by", { group_by: "category", basket: "everyday", period: "this_month" });
+    assert(splitBefore.ok && splitBefore.card.kind === "bars" && splitAfter.ok && splitAfter.card.kind === "bars");
+    const restaurants = (rows: { key: string; eur: number }[]) => rows.find((r) => r.key === "Restaurants")?.eur ?? 0;
+    assert.equal(Math.round(restaurants(splitAfter.card.rows) * 100) - Math.round(restaurants(splitBefore.card.rows) * 100), 15000);
+    assert.equal(splitAfter.card.total.eur, monthAfterDinner.card.rows.find((r) => r.key === "everyday")?.eur);
 
     // Reproduce the screenshot: €3,195 everyday spending and €1,000 groceries.
     // Actual monthly spending must include the full purchases; historical averages divide by 24.

@@ -4,15 +4,19 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PurchaseState } from "@/lib/purchase-presets";
+import type { Basket } from "@/lib/category-colors";
 import type { BarsCard as BarsCardData, IdeasCard, SafeCard as SafeCardData } from "@/lib/protocol";
 import { AppHeader } from "./app-header";
 import { AppNav } from "./app-nav";
-import { BarsCard, SafeCard } from "./cards/money-cards";
+import { BasketFlipCard } from "./cards/basket-flip-card";
+import { SafeCard } from "./cards/money-cards";
 import { TryItStack } from "./cards/try-it-stack";
 import { useLanguage } from "./language-provider";
 import { SimulateSheet } from "./simulate-sheet";
 
-export function Home({ safe, baskets, ideas, simulation }: { safe: SafeCardData; baskets: BarsCardData; ideas: IdeasCard; simulation: PurchaseState }) {
+export function Home({ safe, baskets, breakdowns, ideas, simulation }: {
+  safe: SafeCardData; baskets: BarsCardData; breakdowns: Record<Basket, BarsCardData>; ideas: IdeasCard; simulation: PurchaseState;
+}) {
   const { t } = useLanguage();
   const router = useRouter();
   const [sheet, setSheet] = useState(false);
@@ -80,7 +84,7 @@ export function Home({ safe, baskets, ideas, simulation }: { safe: SafeCardData;
             {failed && <p role="status" className="text-xs text-critical">{t("liveUnavailable")}</p>}
           </div>}
 
-          <BarsCard card={baskets} />
+          <BasketFlipCard baskets={baskets} breakdowns={breakdowns} />
           {/* A new ranking (e.g. after a simulated purchase) starts again from its first idea. */}
           <TryItStack key={ideas.ideas.map((idea) => idea.key).join("|")} card={ideas} />
 

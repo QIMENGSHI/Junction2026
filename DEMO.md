@@ -33,6 +33,11 @@ Ask: **“Where does my money really go?”**
 
 Show the three basket bars, then the everyday breakdown. Point out that restaurants lead everyday spending at **€540.34 a month**.
 
+On Home, the same question is one tap: tap **Everyday spending** and the baskets card turns
+over to September's categories, one color each: Transportation **€364.14**, Lifestyle
+**€352.87**, Entertainment **€352.68**, Restaurants **€133.87** (together the front's
+€1,203.56). Tap the card to turn it back.
+
 **2:05–2:35 — Turn insight into action**
 
 Ask: **“What if I cut dining out by 20%?”**
@@ -42,7 +47,7 @@ Move the slider. At 20%, the verified result is **€108.07 a month** and **€1
 On Home, the **Try it** stack holds three what-if cards ranked by how far the
 spending sits above normal: **Restaurants** (€343.93 a month above people your age),
 **Entertainment** (€299.71 above) and **Taxi** (€207.65 this month against a usual
-€16.12). Swipe, or tap a name, to bring another card to the front. In Coach,
+€16.12). Swipe, or tap the arrows at the screen's edges, to bring another card to the front. In Coach,
 **“What else could I cut?”** shows the same stack.
 
 Live variant: **Simulate a purchase → Taxi → 200 → Add purchase**. The stack re-ranks
