@@ -21,10 +21,10 @@ export function CardView({ card }: { card: Card }) {
 
 export function CardFrame({ title, meta, children }: { title: string; meta?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
-      <header className="mb-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-        <h2 className="min-w-0 flex-1 text-sm font-medium leading-snug text-ink-2">{title}</h2>
-        {meta && <p className="max-w-[58%] shrink-0 text-right text-xs leading-snug text-muted">{meta}</p>}
+    <section className="kori-card">
+      <header className="mb-4">
+        <h2 className="text-lg font-bold leading-snug text-accent">{title}</h2>
+        {meta && <p className="mt-1 text-xs leading-snug text-muted">{meta}</p>}
       </header>
       {children}
     </section>

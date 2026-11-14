@@ -39,13 +39,13 @@ export function BarsCard({ card }: { card: BarsCardData }) {
   const color = (row: SpendRow) => basketColor(card.group_by === "basket" ? row.key : card.basket);
 
   return (
-    <CardFrame title={cardTitle(card.title, language)} meta={`${periodLabel(card.period.start, card.period.end, language)}${perMonth ? ` · ${t("perMonth")}` : ""}`}>
+    <CardFrame title={card.group_by === "basket" ? t("basketTitle") : cardTitle(card.title, language)} meta={`${perMonth ? `${t("perMonth")} · ` : ""}${periodLabel(card.period.start, card.period.end, language)}`}>
       {card.rows.length === 0 && <p className="text-sm text-ink-2">{language === "fi" ? "Ei menoja tällä jaksolla." : "Nothing in this period."}</p>}
       <ul className="flex flex-col gap-1">
         {card.rows.map((row) => (
           <li key={row.key}>
             <button type="button" onClick={() => setOpen(open === row.key ? null : row.key)} aria-expanded={open === row.key}
-              className="w-full rounded-lg px-1 py-1.5 text-left hover:bg-wash"
+              className="min-h-16 w-full rounded-lg px-1 py-2 text-left hover:bg-wash"
               title={`${displayName(groupName(row.key), language)}: ${eur(value(row), language)}${perMonth ? ` ${t("perMonth")}` : ""}, ${row.n} ${t("transactions")}`}>
               <span className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="truncate">{displayName(groupName(row.key), language)}</span>
@@ -54,8 +54,8 @@ export function BarsCard({ card }: { card: BarsCardData }) {
                   {row.share_pct !== null && <span className="ml-2 inline-block w-11 text-right text-xs text-muted">{row.share_pct}%</span>}
                 </span>
               </span>
-              <span className="mt-1 block h-3">
-                <span className="block h-3 rounded-r-[4px]"
+              <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-wash">
+                <span className="block h-1.5 rounded-full"
                   style={{ width: `${longest ? (value(row) / longest) * 100 : 0}%`, background: color(row) }} />
               </span>
             </button>
@@ -129,13 +129,14 @@ export function SafeCard({ card }: { card: SafeCardData }) {
   const [sheet, setSheet] = useState(false);
   return (
     <>
-      <CardFrame title={t("safeTitle")} meta={`${t("payday")} ${dayLabel(card.payday, false, language)} · ${t("inDays", { days: card.days_to_payday })}`}>
-        <p className="text-5xl font-semibold tracking-tight">{weekly ? eur(weekly.eur, language) : "–"}</p>
-        {weekly && <p className="mt-1 text-sm text-ink-2">{weeklyNote}</p>}
-        <button type="button" onClick={() => setSheet(true)} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-accent">
-          <span aria-hidden="true">↗</span> {t("howCalculated")}
+      <section className="kori-card overflow-hidden text-center">
+        <h2 className="mt-1 text-base font-semibold">{t("safeTitle")}</h2>
+        <p className="mt-3 text-[clamp(2.5rem,11vw,3.5rem)] font-bold leading-tight tracking-tight text-accent">{weekly ? eur(weekly.eur, language) : "–"}</p>
+        <p className="mt-2 text-xs text-muted">{t("payday")} {dayLabel(card.payday, false, language)} · {t("inDays", { days: card.days_to_payday })}</p>
+        <button type="button" onClick={() => setSheet(true)} className="mt-5 flex min-h-11 w-full items-center justify-between border-t border-line pt-3 text-sm font-semibold text-accent">
+          {t("howCalculated")} <span aria-hidden="true">›</span>
         </button>
-      </CardFrame>
+      </section>
 
       <BottomSheet open={sheet} onClose={() => setSheet(false)} title={t("calculationTitle")}>
         <div className="mb-2 rounded-2xl bg-surface p-4">

@@ -43,7 +43,7 @@ export function LanguageToggle() {
   const { language, setLanguage, t } = useLanguage();
   return (
     <button type="button" onClick={() => setLanguage(language === "en" ? "fi" : "en")}
-      className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 hover:bg-wash"
+      className="min-h-11 rounded-full px-3 py-2 text-sm font-medium text-accent hover:bg-wash"
       aria-label={language === "en" ? "Vaihda kieleksi suomi" : "Switch language to English"}>
       {t("language")}
     </button>

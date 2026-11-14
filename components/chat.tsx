@@ -26,6 +26,20 @@ const SUGGESTIONS = {
   ],
 };
 
+const SHORT_LABELS = {
+  en: ["Taxi spending", "My three baskets", "This week’s budget", "Spend less on dining", "Compare with my peers", "My spending habits"],
+  fi: ["Taksimenot", "Kolme koriani", "Viikon käyttövara", "Säästä ravintoloista", "Vertaa ikäisiini", "Kulutustapani"],
+};
+
+const SHORTCUT_PATHS = [
+  "M5 17H3V9l2-5h14l2 5v8h-2M5 17h14M7 13h.01M17 13h.01M3 9h18M5 17v3m14-3v3",
+  "m7 9 5-6 5 6M3 9h18l-3 12H6L3 9Zm6 4v4m6-4v4",
+  "M18 5a7 7 0 1 0 0 14M4 10h11M4 14h9",
+  "M5 4v6m3-6v6m3-6v6M5 8h6m-3 2v11M19 3c-4 3-4 9 0 9V3Zm0 9v9",
+  "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
+  "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21a8 8 0 0 1 16 0H4Z",
+];
+
 export function Chat() {
   const { turns, busy, send, reset } = useKoriChat();
   const { language, t } = useLanguage();
@@ -42,7 +56,7 @@ export function Chat() {
   };
 
   return (
-    <div className="mx-auto flex h-dvh max-w-md flex-col bg-page">
+    <div className="app-shell mx-auto flex h-dvh max-w-md flex-col bg-page">
       <AppHeader action={turns.length > 0 && (
           <button type="button" onClick={reset} disabled={busy}
             className="rounded-full px-3 py-1.5 text-sm text-ink-2 hover:bg-wash disabled:opacity-40">
@@ -50,20 +64,19 @@ export function Chat() {
           </button>
         )} />
 
-      <main className="flex-1 overflow-y-auto px-4 py-4">
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
         {turns.length === 0 ? (
-          <div className="flex h-full flex-col justify-end gap-4 pb-2">
-            <div>
-              <p className="text-2xl font-semibold leading-snug">{t("greeting")}</p>
-              <p className="mt-2 text-sm text-ink-2">
-                {t("intro")}
-              </p>
+          <div className="flex min-h-full flex-col justify-center gap-6 pb-4">
+            <div className="px-1">
+              <p className="mb-2 text-sm font-medium text-accent">{t("coach")}</p>
+              <h1 className="max-w-64 text-3xl font-bold leading-tight tracking-tight">{t("greeting")}</h1>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {SUGGESTIONS[language].map((question) => (
+            <div className="grid grid-cols-2 gap-3">
+              {SUGGESTIONS[language].map((question, index) => (
                 <button key={question} type="button" onClick={() => ask(question)}
-                  className="rounded-full border border-line bg-surface px-3 py-2 text-left text-sm hover:bg-wash">
-                  {question}
+                  className="flex min-h-24 flex-col items-start justify-between gap-3 rounded-2xl bg-surface p-4 text-left text-sm font-semibold leading-snug hover:bg-wash">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-accent" aria-hidden="true"><path d={SHORTCUT_PATHS[index]} /></svg>
+                  <span className="flex w-full items-center justify-between gap-2">{SHORT_LABELS[language][index]}<span className="text-lg font-normal text-accent" aria-hidden="true">›</span></span>
                 </button>
               ))}
             </div>
@@ -88,11 +101,11 @@ export function Chat() {
 
       <form
         onSubmit={(event) => { event.preventDefault(); ask(draft); }}
-        className="flex gap-2 border-t border-line bg-page px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        className="flex shrink-0 gap-2 bg-surface px-4 py-3">
         <label htmlFor="question" className="sr-only">{t("askPlaceholder")}</label>
         <input id="question" value={draft} onChange={(event) => setDraft(event.target.value)}
           placeholder={t("askPlaceholder")} autoComplete="off" enterKeyHint="send"
-          className="min-w-0 flex-1 rounded-full border border-line bg-surface px-4 py-3 text-base outline-none focus:border-accent" />
+          className="min-w-0 flex-1 rounded-full border border-line bg-wash px-4 py-3 text-base outline-none focus:border-accent" />
         <button type="submit" disabled={busy || !draft.trim()}
           className="rounded-full bg-accent px-5 font-medium text-on-accent disabled:opacity-40">
           {t("ask")}

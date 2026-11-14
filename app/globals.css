@@ -5,61 +5,21 @@
    Each basket keeps its color everywhere in the app. */
 :root {
   color-scheme: light;
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --muted: #898781;
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --line: rgba(11, 11, 11, 0.1);
-  --wash: rgba(11, 11, 11, 0.04);
-  --accent: #2a78d6;
+  --page: #e9f5ed;
+  --surface: #ffffff;
+  --ink: #202622;
+  --ink-2: #535e57;
+  --muted: #66736a;
+  --grid: #e3ebe5;
+  --axis: #b8c9be;
+  --line: #e1e9e3;
+  --wash: #f0f7f2;
+  --accent: #007a48;
   --on-accent: #ffffff;
-  --basket-regular: #2a78d6;
-  --basket-irregular: #eb6834;
-  --basket-everyday: #1baf7a;
+  --basket-regular: #007a48;
+  --basket-irregular: #6d947b;
+  --basket-everyday: #00ab4e;
   --good: #006300;
-  --critical: #d03b3b;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) {
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --ink: #f0efec;
-    --ink-2: #c3c2b7;
-    --muted: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --line: rgba(255, 255, 255, 0.1);
-    --wash: rgba(255, 255, 255, 0.05);
-    --accent: #3987e5;
-    --basket-regular: #3987e5;
-    --basket-irregular: #d95926;
-    --basket-everyday: #199e70;
-    --good: #0ca30c;
-    --critical: #d03b3b;
-  }
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --ink: #f0efec;
-  --ink-2: #c3c2b7;
-  --muted: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --line: rgba(255, 255, 255, 0.1);
-  --wash: rgba(255, 255, 255, 0.05);
-  --accent: #3987e5;
-  --basket-regular: #3987e5;
-  --basket-irregular: #d95926;
-  --basket-everyday: #199e70;
-  --good: #0ca30c;
   --critical: #d03b3b;
 }
 
@@ -117,4 +77,19 @@ a {
 /* Columns of money line up; big standalone figures keep proportional digits. */
 .money-col {
   font-variant-numeric: tabular-nums;
+}
+
+.app-shell {
+  box-shadow: 0 0 48px rgb(0 67 37 / 5%);
+}
+
+.kori-card {
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 20px;
+}
+
+input[type="range"] {
+  min-height: 32px;
+  cursor: pointer;
 }

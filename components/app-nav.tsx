@@ -13,14 +13,14 @@ export function AppNav() {
   const pathname = usePathname();
   const { language, t } = useLanguage();
   return (
-    <nav aria-label={language === "fi" ? "Päänavigaatio" : "Primary"} className="border-t border-line bg-page pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+    <nav aria-label={language === "fi" ? "Päänavigaatio" : "Primary"} className="shrink-0 border-t border-line bg-surface pb-[max(0.4rem,env(safe-area-inset-bottom))]">
       <ul className="mx-auto grid max-w-md grid-cols-2">
         {items.map(({ href, key, icon: Icon }) => {
           const active = pathname === href;
           return (
             <li key={href}>
               <Link href={href} aria-current={active ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium ${active ? "text-accent" : "text-muted hover:text-ink-2"}`}>
+                className={`flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium ${active ? "text-accent" : "text-muted hover:text-ink-2"}`}>
                 <Icon filled={active} />
                 <span>{t(key)}</span>
               </Link>

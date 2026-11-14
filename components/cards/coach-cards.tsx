@@ -25,10 +25,7 @@ export function CutCard({ card }: { card: CutCardData }) {
 
   return (
     <CardFrame
-      title={language === "fi"
-        ? `Entä jos vähennät ${displayName(card.title, language).toLocaleLowerCase("fi-FI")}?`
-        : `What if you cut ${card.title.toLowerCase()}?`}
-      meta={`${t("base")}: ${periodLabel(card.period_start, card.period_end, language)}`}>
+      title={`${displayName(card.title, language)} · ${t("planTitle")}`}>
       <label className="block">
         <span className="flex items-baseline justify-between text-sm">
           <span>{t("cutBy")}</span>
@@ -41,17 +38,17 @@ export function CutCard({ card }: { card: CutCardData }) {
       <dl className="mt-3 grid grid-cols-2 gap-3">
         <div>
           <dt className="text-xs text-muted">{t("savedMonth")}</dt>
-          <dd className="text-xl font-semibold">{eur(at.monthly, language)}</dd>
+          <dd className="mt-1 text-2xl font-bold tracking-tight text-accent">{eur(at.monthly, language)}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted">{t("savedYear")}</dt>
-          <dd className="text-xl font-semibold">{eur(at.yearly, language)}</dd>
+          <dd className="mt-1 text-2xl font-bold tracking-tight text-accent">{eur(at.yearly, language)}</dd>
         </div>
       </dl>
-      <p className="mt-3 text-sm text-ink-2">
-        {t("spendNow", { now: eur(card.weekly_now, language), after: eur(at.weekly, language) })}{" "}
-        {t("safeSentence", { safe: eur(card.safe_to_spend_week, language) })}
-      </p>
+      <details className="mt-4 text-xs text-muted">
+        <summary className="cursor-pointer py-2">{t("base")}: {periodLabel(card.period_start, card.period_end, language)}</summary>
+        <p className="py-2 leading-relaxed">{t("spendNow", { now: eur(card.weekly_now, language), after: eur(at.weekly, language) })}</p>
+      </details>
       <ShowTransactions ids={card.tx_ids} />
     </CardFrame>
   );
@@ -75,11 +72,14 @@ export function BenchmarkCard({ card }: { card: BenchmarkCardData }) {
               <span>{language === "fi" ? "Ikäryhmä" : "Age group"}</span>
               <span className="h-2 rounded-r bg-axis" style={{ width: `${longest ? (row.peers_avg_per_month / longest) * 100 : 0}%` }} />
             </div>
-            <p className="mt-2 text-xs text-muted">
+            <details className="mt-2 text-xs text-muted">
+              <summary className="cursor-pointer py-2">{row.times_peer_avg !== null ? t("timesAverage", { times: row.times_peer_avg }) : t("howCalculated")}</summary>
+              <p className="pb-2 leading-relaxed">
               {row.times_peer_avg !== null && t("timesAverage", { times: row.times_peer_avg })}
               {row.percentile !== null && ` · ${t("moreThan", { percent: row.percentile, count: row.peers_counted })}`}
               {` · ${t("median", { amount: eur(row.peers_median_per_month, language) })}`}
-            </p>
+              </p>
+            </details>
           </li>;
         })}
       </ul>
