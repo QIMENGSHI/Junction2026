@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CarTaxiFront, ChevronRight, ShoppingBasket, UserRound, UsersRound, UtensilsCrossed, Wallet } from "lucide-react";
 import { AppHeader } from "./app-header";
 import { AppNav } from "./app-nav";
+import { AssistantMarkdown } from "./assistant-markdown";
 import { CardView, PendingCard } from "./cards/card-view";
 import { useLanguage } from "./language-provider";
 import { type AssistantTurn, useKoriChat } from "./use-kori-chat";
@@ -121,7 +122,7 @@ function Answer({ turn }: { turn: AssistantTurn }) {
       {nothingYet && <p className="text-sm text-muted" aria-live="polite">{t("looking")}</p>}
       {turn.segments.map((segment, i) =>
         segment.type === "text" ? (
-          <p key={i} className="whitespace-pre-wrap leading-relaxed">{segment.text}</p>
+          <AssistantMarkdown key={i} text={segment.text} />
         ) : segment.card ? (
           <CardView key={segment.id} card={segment.card} />
         ) : segment.error ? (
